@@ -226,6 +226,13 @@ def callback(call):
     user_id = call.from_user.id
     data = call.data
 
+    # Strict real-time Force Join Check
+    if data != "check_join" and not check_join(user_id):
+        bot.answer_callback_query(call.id, "❌ You left our channels! Please join again.", show_alert=True)
+        try: bot.delete_message(chat_id, call.message.message_id)
+        except: pass
+        return
+
     if data == "check_join":
         if check_join(user_id):
             try: bot.delete_message(chat_id, call.message.message_id)
@@ -242,8 +249,17 @@ def callback(call):
         service = data.split(":")[1]
         nums = read_json("numbers.json")
         available = [n for n in nums if not n.get('used') and n.get('service') == service]
+        
+        if not available:
+            bot.answer_callback_query(call.id, f"❌ Sorry, {service} is currently out of stock!", show_alert=True)
+            return
+
         countries = sorted(list(set([n['country'] for n in available if n.get('country')])))
         
+        if not countries:
+            bot.answer_callback_query(call.id, "❌ No regions found for this service.", show_alert=True)
+            return
+
         markup = types.InlineKeyboardMarkup()
         for country in countries:
             markup.add(types.InlineKeyboardButton(f"📍 {country}", callback_data=f"sel_country:{service}:{country}"))
