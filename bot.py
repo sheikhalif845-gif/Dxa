@@ -321,8 +321,8 @@ def callback(call):
         text = f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend message to broadcast:"
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
-        msg = bot.send_message(chat_id, text, reply_markup=markup)
-        bot.register_next_step_handler(msg, process_broadcast)
+        sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        bot.register_next_step_handler(sent, process_broadcast)
 
     elif data == "admin_delete_files":
         files = read_json("files.json")
@@ -349,10 +349,34 @@ def callback(call):
 
     elif data == "view_used" or data == "view_unused":
         is_used = "used" in data
-        nums = [n for n in read_json("numbers.json") if n.get('used') == is_used]
-        text = f"<b>{data.replace('view_', '').upper()} NUMBERS</b>\nTotal: {len(nums)}"
+        all_nums = read_json("numbers.json")
+        nums = [n for n in all_nums if n.get('used') == is_used]
+        
+        # Calculate Service Breakdown
+        service_counts = {}
+        for n in nums:
+            s_name = n.get('service', 'Other')
+            service_counts[s_name] = service_counts.get(s_name, 0) + 1
+        
+        breakdown_text = ""
+        for s in sorted(service_counts.keys()):
+            breakdown_text += f"  • {s}: <b>{service_counts[s]}</b>\n"
+        
+        if not breakdown_text: breakdown_text = "  • No numbers found.\n"
+
+        icon = e("✅", PREMIUM_EMOJIS['DONE']) if is_used else e("🚀", PREMIUM_EMOJIS['ROCKET'])
+        label = "USED" if is_used else "UNUSED"
+        
+        text = (f"{icon} <b>{label} NUMBERS</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Total: <b>{len(nums)}</b>\n\n"
+                f"<b>Service Stock:</b>\n"
+                f"{breakdown_text}\n"
+                f"You can download the full list as a .txt file below.\n"
+                f"━━━━━━━━━━━━━")
+                
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("📥 Download (.txt)", callback_data=f"download_{'used' if is_used else 'unused'}"))
+        markup.add(types.InlineKeyboardButton(f"📥 Download {label.capitalize()} (.txt)", callback_data=f"download_{label.lower()}"))
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         except: pass
@@ -369,6 +393,7 @@ def callback(call):
         bot.send_document(chat_id, buf)
 
     elif data == "admin_panel_back":
+        bot.clear_step_handler_by_chat_id(chat_id)
         show_admin_panel(chat_id, call.message.message_id)
 
 # --- Admin Operations outside Callback ---
@@ -420,14 +445,23 @@ def process_country_name(m, doc, service_name):
         bot.send_message(m.chat.id, f"❌ Error: {str(ex)}")
 
 def process_broadcast(msg):
+    # Check if user canceled by clicking back or command
+    if msg.text and (msg.text.startswith('/') or msg.text in ["📱 Get Number", "🛠 Support", "👑 Admin Panel"]):
+        return
+
     users = read_json("users.json")
+    chat_id = msg.chat.id
+    
+    status_msg = bot.send_message(chat_id, f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} Broadcasting...", parse_mode='HTML')
+    
     count = 0
     for u in users:
         try:
-            bot.copy_message(u['uid'], msg.chat.id, msg.message_id)
+            bot.copy_message(u['uid'], chat_id, msg.message_id)
             count += 1
         except: pass
-    bot.send_message(msg.chat.id, f"✅ Broadcast complete! Sent to {count} users.")
+        
+    bot.edit_message_text(f"{e('✅', PREMIUM_EMOJIS['DONE'])} Broadcast complete! Sent to {count} users.", chat_id, status_msg.message_id)
 
 # --- OTP Background Processor ---
 def normalize_num(num):
