@@ -313,55 +313,59 @@ def callback(call):
         text = f"{e('📤', PREMIUM_EMOJIS['UPLOAD'])} <b>UPLOAD NUMBERS</b>\n━━━━━━━━━━━━━\nPlease send the .txt file containing numbers."
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        bot.register_next_step_handler(sent, handle_admin_upload_file)
+
+    elif data == "admin_broadcast":
+# ... (rest stays same)
+
+# Add this outside the callback handler
+def handle_admin_upload_file(msg):
+    if msg.from_user.id != ADMIN_ID: return
+    if not msg.document or not msg.document.file_name.endswith('.txt'):
+        bot.send_message(msg.chat.id, "❌ Please send a valid .txt file.")
+        return
+    
+    s_msg = bot.send_message(msg.chat.id, f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Enter Service Name:", parse_mode='HTML')
+    bot.register_next_step_handler(s_msg, lambda m: process_service_name(m, msg.document))
+
+def process_service_name(m, doc):
+    service_name = m.text
+    c_msg = bot.send_message(m.chat.id, f"{e('📍', PREMIUM_EMOJIS['PIN'])} Enter Country Name:", parse_mode='HTML')
+    bot.register_next_step_handler(c_msg, lambda m2: process_country_name(m2, doc, service_name))
+
+def process_country_name(m, doc, service_name):
+    country_name = m.text
+    wait_msg = bot.send_message(m.chat.id, f"{e('⏳', PREMIUM_EMOJIS['WAIT'])} Processing...", parse_mode='HTML')
+    
+    try:
+        file_info = bot.get_file(doc.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        content = downloaded_file.decode('utf-8')
+        lines = [l.strip() for l in content.splitlines() if l.strip()]
         
-        @bot.message_handler(content_types=['document'])
-        def handle_upload(dmsg):
-            if dmsg.from_user.id != ADMIN_ID: return
-            if not dmsg.document.file_name.endswith('.txt'):
-                bot.send_message(chat_id, "❌ Please send a valid .txt file.")
-                return
-            
-            s_msg = bot.send_message(chat_id, f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Enter Service Name:", parse_mode='HTML')
-            bot.register_next_step_handler(s_msg, lambda m: process_service_name(m, dmsg.document))
-
-        def process_service_name(m, doc):
-            service_name = m.text
-            c_msg = bot.send_message(chat_id, f"{e('📍', PREMIUM_EMOJIS['PIN'])} Enter Country Name:", parse_mode='HTML')
-            bot.register_next_step_handler(c_msg, lambda m2: process_country_name(m2, doc, service_name))
-
-        def process_country_name(m, doc, service_name):
-            country_name = m.text
-            wait_msg = bot.send_message(chat_id, f"{e('⏳', PREMIUM_EMOJIS['WAIT'])} Processing...", parse_mode='HTML')
-            
-            try:
-                file_info = bot.get_file(doc.file_id)
-                downloaded_file = bot.download_file(file_info.file_path)
-                content = downloaded_file.decode('utf-8')
-                lines = [l.strip() for l in content.splitlines() if l.strip()]
-                
-                numbers = read_json("numbers.json")
-                files = read_json("files.json")
-                fid = str(int(time.time()))
-                
-                files.append({'id': fid, 'fileName': doc.file_name, 'service': service_name, 'country': country_name, 'count': len(lines)})
-                import uuid
-                for line in lines:
-                    numbers.append({
-                        'id': str(uuid.uuid4())[:8],
-                        'number': line,
-                        'service': service_name,
-                        'country': country_name,
-                        'used': False,
-                        'fileId': fid
-                    })
-                
-                write_json("numbers.json", numbers)
-                write_json("files.json", files)
-                bot.delete_message(chat_id, wait_msg.message_id)
-                bot.send_message(chat_id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Success! {len(lines)} numbers added.")
-            except Exception as ex:
-                bot.send_message(chat_id, f"❌ Error: {str(ex)}")
+        numbers = read_json("numbers.json")
+        files = read_json("files.json")
+        fid = str(int(time.time()))
+        
+        files.append({'id': fid, 'fileName': doc.file_name, 'service': service_name, 'country': country_name, 'count': len(lines)})
+        import uuid
+        for line in lines:
+            numbers.append({
+                'id': str(uuid.uuid4())[:8],
+                'number': line,
+                'service': service_name,
+                'country': country_name,
+                'used': False,
+                'fileId': fid
+            })
+        
+        write_json("numbers.json", numbers)
+        write_json("files.json", files)
+        bot.delete_message(m.chat.id, wait_msg.message_id)
+        bot.send_message(m.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Success! {len(lines)} numbers added.")
+    except Exception as ex:
+        bot.send_message(m.chat.id, f"❌ Error: {str(ex)}")
 
     elif data == "admin_broadcast":
         text = f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend message to broadcast:"
@@ -441,6 +445,12 @@ def fetch_otps():
                     serv, full_num, content, tstamp = rec
                     msg_id = f"{full_num}_{tstamp}"
                     if msg_id in processed_messages: continue
+
+                    # Limit processed_messages set size to 10,000 to prevent memory leaks
+                    if len(processed_messages) > 10000:
+                        it = iter(processed_messages)
+                        next(it) # skip one
+                        processed_messages.remove(next(it))
                     
                     norm_api = normalize_num(full_num)
                     match = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
