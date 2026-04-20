@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 // --- Configuration ---
 const BOT_TOKEN = process.env.BOT_TOKEN || "8332473503:AAEvyS-iBhm6eVp1VdEMYpTLhX5KEUu0WxQ";
 const ADMIN_ID = parseInt(process.env.ADMIN_ID || "8197284774");
-const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
 const FORCE_JOIN_CHANNELS = [
     { name: "DXA Universe", url: "https://t.me/dxa_universe", username: "@dxa_universe" },
