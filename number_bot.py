@@ -5,15 +5,16 @@ import time
 import requests
 import re
 import threading
+import uuid
 from telebot import types
 from datetime import datetime
 
 # --- Configuration ---
-# You can set these in your .env or replace directly
-BOT_TOKEN = "8332473503:AAEvyS-iBhm6eVp1VdEMYpTLhX5KEUu0WxQ"
-ADMIN_ID = 8197284774
-OTP_API_URL = "http://147.135.212.197/crapi/st/viewstats"
-OTP_API_TOKEN = "R1dPQUFBUzSLhmRod3SLV0OYhHxKbWeEWHdqfYl_eVhTU5RzWGZogQ=="
+# Replace with your actual values if not using environment variables
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8332473503:AAEvyS-iBhm6eVp1VdEMYpTLhX5KEUu0WxQ")
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "8197284774"))
+OTP_API_URL = os.environ.get("OTP_API_URL", "http://147.135.212.197/crapi/st/viewstats")
+OTP_API_TOKEN = os.environ.get("OTP_API_TOKEN", "R1dPQUFBUzSLhmRod3SLV0OYhHxKbWeEWHdqfYl_eVhTU5RzWGZogQ==")
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='HTML')
 
@@ -218,6 +219,64 @@ def handle_msg(msg):
         delete_last_menu(chat_id, user_id)
         show_admin_panel(chat_id, user_id=user_id)
 
+# --- Admin Processing Helpers ---
+def handle_admin_upload_file(msg):
+    if msg.from_user.id != ADMIN_ID: return
+    if not msg.document or not msg.document.file_name.endswith('.txt'):
+        bot.send_message(msg.chat.id, "❌ Please send a valid .txt file.")
+        return
+    
+    s_msg = bot.send_message(msg.chat.id, f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Enter Service Name:", parse_mode='HTML')
+    bot.register_next_step_handler(s_msg, lambda m: process_service_name(m, msg.document))
+
+def process_service_name(m, doc):
+    service_name = m.text
+    c_msg = bot.send_message(m.chat.id, f"{e('📍', PREMIUM_EMOJIS['PIN'])} Enter Country Name:", parse_mode='HTML')
+    bot.register_next_step_handler(c_msg, lambda m2: process_country_name(m2, doc, service_name))
+
+def process_country_name(m, doc, service_name):
+    country_name = m.text
+    wait_msg = bot.send_message(m.chat.id, f"{e('⏳', PREMIUM_EMOJIS['WAIT'])} Processing...", parse_mode='HTML')
+    
+    try:
+        file_info = bot.get_file(doc.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        content = downloaded_file.decode('utf-8')
+        lines = [l.strip() for l in content.splitlines() if l.strip()]
+        
+        numbers = read_json("numbers.json")
+        files = read_json("files.json")
+        fid = str(int(time.time()))
+        
+        files.append({'id': fid, 'fileName': doc.file_name, 'service': service_name, 'country': country_name, 'count': len(lines)})
+        
+        for line in lines:
+            numbers.append({
+                'id': str(uuid.uuid4())[:8],
+                'number': line,
+                'service': service_name,
+                'country': country_name,
+                'used': False,
+                'fileId': fid
+            })
+        
+        write_json("numbers.json", numbers)
+        write_json("files.json", files)
+        bot.delete_message(m.chat.id, wait_msg.message_id)
+        bot.send_message(m.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Success! {len(lines)} numbers added.")
+    except Exception as ex:
+        bot.send_message(m.chat.id, f"❌ Error: {str(ex)}")
+
+def process_broadcast(msg):
+    users = read_json("users.json")
+    count = 0
+    for u in users:
+        try:
+            bot.copy_message(u['uid'], msg.chat.id, msg.message_id)
+            count += 1
+        except: pass
+    bot.send_message(msg.chat.id, f"✅ Broadcast complete! Sent to {count} users.")
+
 # --- Callback Handler ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
@@ -240,8 +299,8 @@ def callback(call):
     elif data.startswith("sel_service:"):
         service = data.split(":")[1]
         nums = read_json("numbers.json")
-        available = [n for n in nums if not n.get('used') and n['service'] == service]
-        countries = sorted(list(set([n['country'] for n in available])))
+        available = [n for n in nums if not n.get('used') and n.get('service') == service]
+        countries = sorted(list(set([n['country'] for n in available if n.get('country')])))
         
         markup = types.InlineKeyboardMarkup()
         for country in countries:
@@ -317,57 +376,6 @@ def callback(call):
         bot.register_next_step_handler(sent, handle_admin_upload_file)
 
     elif data == "admin_broadcast":
-# ... (rest stays same)
-
-# Add this outside the callback handler
-def handle_admin_upload_file(msg):
-    if msg.from_user.id != ADMIN_ID: return
-    if not msg.document or not msg.document.file_name.endswith('.txt'):
-        bot.send_message(msg.chat.id, "❌ Please send a valid .txt file.")
-        return
-    
-    s_msg = bot.send_message(msg.chat.id, f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Enter Service Name:", parse_mode='HTML')
-    bot.register_next_step_handler(s_msg, lambda m: process_service_name(m, msg.document))
-
-def process_service_name(m, doc):
-    service_name = m.text
-    c_msg = bot.send_message(m.chat.id, f"{e('📍', PREMIUM_EMOJIS['PIN'])} Enter Country Name:", parse_mode='HTML')
-    bot.register_next_step_handler(c_msg, lambda m2: process_country_name(m2, doc, service_name))
-
-def process_country_name(m, doc, service_name):
-    country_name = m.text
-    wait_msg = bot.send_message(m.chat.id, f"{e('⏳', PREMIUM_EMOJIS['WAIT'])} Processing...", parse_mode='HTML')
-    
-    try:
-        file_info = bot.get_file(doc.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        content = downloaded_file.decode('utf-8')
-        lines = [l.strip() for l in content.splitlines() if l.strip()]
-        
-        numbers = read_json("numbers.json")
-        files = read_json("files.json")
-        fid = str(int(time.time()))
-        
-        files.append({'id': fid, 'fileName': doc.file_name, 'service': service_name, 'country': country_name, 'count': len(lines)})
-        import uuid
-        for line in lines:
-            numbers.append({
-                'id': str(uuid.uuid4())[:8],
-                'number': line,
-                'service': service_name,
-                'country': country_name,
-                'used': False,
-                'fileId': fid
-            })
-        
-        write_json("numbers.json", numbers)
-        write_json("files.json", files)
-        bot.delete_message(m.chat.id, wait_msg.message_id)
-        bot.send_message(m.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Success! {len(lines)} numbers added.")
-    except Exception as ex:
-        bot.send_message(m.chat.id, f"❌ Error: {str(ex)}")
-
-    elif data == "admin_broadcast":
         text = f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend message to broadcast:"
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
@@ -383,7 +391,8 @@ def process_country_name(m, doc, service_name):
         for f in files:
             markup.add(types.InlineKeyboardButton(f"❌ {f['fileName']} ({f['service']})", callback_data=f"del_file:{f['id']}"))
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
-        bot.edit_message_text("Select a file to delete:", chat_id, call.message.message_id, reply_markup=markup)
+        try: bot.edit_message_text("Select a file to delete:", chat_id, call.message.message_id, reply_markup=markup)
+        except: pass
 
     elif data.startswith("del_file:"):
         fid = data.split(":")[1]
@@ -403,7 +412,8 @@ def process_country_name(m, doc, service_name):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("📥 Download (.txt)", callback_data=f"download_{'used' if is_used else 'unused'}"))
         markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
-        bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        except: pass
 
     elif data.startswith("download_"):
         is_used = "used" in data
@@ -418,16 +428,6 @@ def process_country_name(m, doc, service_name):
 
     elif data == "admin_panel_back":
         show_admin_panel(chat_id, call.message.message_id)
-
-def process_broadcast(msg):
-    users = read_json("users.json")
-    count = 0
-    for u in users:
-        try:
-            bot.copy_message(u['uid'], msg.chat.id, msg.message_id)
-            count += 1
-        except: pass
-    bot.send_message(msg.chat.id, f"✅ Broadcast complete! Sent to {count} users.")
 
 # --- OTP Background Processor ---
 def normalize_num(num):
@@ -446,10 +446,9 @@ def fetch_otps():
                     msg_id = f"{full_num}_{tstamp}"
                     if msg_id in processed_messages: continue
 
-                    # Limit processed_messages set size to 10,000 to prevent memory leaks
                     if len(processed_messages) > 10000:
                         it = iter(processed_messages)
-                        next(it) # skip one
+                        next(it)
                         processed_messages.remove(next(it))
                     
                     norm_api = normalize_num(full_num)
@@ -459,13 +458,11 @@ def fetch_otps():
                         iso_ts = tstamp.replace(" ", "T") if " " in tstamp else tstamp
                         try:
                             msg_time = datetime.fromisoformat(iso_ts).timestamp() * 1000
-                            # Reject if older than 24h
                             if msg_time < (match.get('assignedAt', 0) - 86400000):
                                 processed_messages.add(msg_id)
                                 continue
                         except: pass
 
-                        # Extract OTP
                         otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
                         if otp_match:
                             code = otp_match.group(0)
@@ -473,10 +470,7 @@ def fetch_otps():
                             premium = APP_EMOJIS.get(serv_key)
                             icon = e(premium[0], premium[1]) if premium else e("💬", "5337302974806922068")
                             
-                            # Format: Icon Service Number
                             body = f"{icon} <b>{serv}</b>  <code>{norm_api}</code>"
-                            # Attempt to use native copy_text structure if possible in raw dict
-                            # For pyTelegramBotAPI, we can use a dict for the markup to include newer fields
                             markup = {
                                 "inline_keyboard": [
                                     [{
@@ -488,7 +482,7 @@ def fetch_otps():
                             bot.send_message(match['assignedTo'], body, reply_markup=json.dumps(markup))
                             processed_messages.add(msg_id)
             time.sleep(5)
-        except Exception as e:
+        except:
             time.sleep(10)
 
 if __name__ == "__main__":
