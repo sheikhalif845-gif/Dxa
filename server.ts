@@ -14,12 +14,7 @@ const __dirname = path.dirname(__filename);
 // --- Configuration ---
 const BOT_TOKEN = process.env.BOT_TOKEN || "8332473503:AAEvyS-iBhm6eVp1VdEMYpTLhX5KEUu0WxQ";
 const ADMIN_ID = parseInt(process.env.ADMIN_ID || "8197284774");
-const bot = new TelegramBot(BOT_TOKEN, { polling: false });
-
-const FORCE_JOIN_CHANNELS = [
-    { name: "DXA Universe", url: "https://t.me/dxa_universe", username: "@dxa_universe" },
-    { name: "Developer X Asik", url: "https://t.me/developer_x_asik", username: "@developer_x_asik" }
-];
+const bot = new TelegramBot(BOT_TOKEN, { polling: true }); // Enable polling to "turn on" the bot
 
 const PREMIUM_EMOJIS = {
     "FIRE": "5337267511261960341", "HELLO": "5353027129250453493", "DXA": "5334763399299506604",
@@ -28,7 +23,9 @@ const PREMIUM_EMOJIS = {
     "NUMBERS": "5352862640592949843", "ROCKET": "5352597830089347330", "GRAPH": "5352877703043258544",
     "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5352922460897452503",
     "DOT": "5352638632278660622", "N1": "5352651766288652742", "N2": "5355186458418257716",
-    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5336997731481193790"
+    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5336997731481193790",
+    "OTP_ID": "5353022963132174959", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
+    "DATE": "5352585194295564660", "WARN": "5336944168944047463"
 };
 
 const APP_EMOJIS: { [key: string]: [string, string] } = {
@@ -45,6 +42,7 @@ const APP_EMOJIS: { [key: string]: [string, string] } = {
     'PROTONVPN': ['🥚', '5348390922507817684'], 'EXPRESSVPN': ['👨‍⚖️', '5346335574498251610'],
     'GMAIL': ['🐁', '5348494358205207761'], 'MESSENGER': ['🧻', '5348486915026884464'],
     'CHROME': ['⚗️', '5346311574221000149'], 'GOOGLEONE': ['🛴', '5348075478634766440'],
+    'NAGAD': ['💴', '5352985330628730418'],
 };
 
 function e(emoji: string, emojiId: string) {
@@ -77,9 +75,38 @@ function writeJson(filename: string, data: any) {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-// --- Helper Functions ---
+// --- Settings Management ---
+function getSettings() {
+    const settings = readJson("settings.json");
+    if (!settings || Array.isArray(settings)) {
+        const defaultSettings = {
+            force_join: true,
+            channels: [
+                { name: "DXA Universe", url: "https://t.me/dxa_universe", username: "@dxa_universe" },
+                { name: "Developer X Asik", url: "https://t.me/developer_x_asik", username: "@developer_x_asik" }
+            ],
+            admins: [],
+            otp_groups: [],
+            otp_link: "https://t.me/dxaotpzone"
+        };
+        writeJson("settings.json", defaultSettings);
+        return defaultSettings;
+    }
+    return settings;
+}
+
+function isAdmin(userId: number) {
+    if (userId === ADMIN_ID) return true;
+    const settings = getSettings();
+    return (settings.admins || []).map(String).includes(userId.toString());
+}
+
 async function checkForceJoin(userId: number) {
-    for (const channel of FORCE_JOIN_CHANNELS) {
+    const settings = getSettings();
+    if (!settings.force_join) return true;
+    if (isAdmin(userId)) return true;
+    
+    for (const channel of settings.channels || []) {
         try {
             const member = await bot.getChatMember(channel.username, userId);
             if (['left', 'kicked', 'restricted'].includes(member.status)) return false;
@@ -94,7 +121,7 @@ function getMainButtons(userId: number) {
     const buttons = [
         [{ text: "📱 Get Number" }, { text: "🛠 Support" }]
     ];
-    if (userId === ADMIN_ID) {
+    if (isAdmin(userId)) {
         buttons.push([{ text: "👑 Admin Panel" }]);
     }
     return {
@@ -119,16 +146,27 @@ bot.onText(/\/start/, async (msg) => {
         writeJson("users.json", users);
     }
 
+async function showForceJoinMsg(chatId: number) {
+    const settings = getSettings();
+    const text = 
+        `${e('🚫', PREMIUM_EMOJIS.CLOSE)} <b>ACCESS RESTRICTED</b> ${e('🚫', PREMIUM_EMOJIS.CLOSE)}\n` +
+        `━━━━━━━━━━━━\n` +
+        `${e('📢', PREMIUM_EMOJIS.BROADCAST)} <b>Join Our Official Channel</b>\n\n` +
+        `${e('🔐', PREMIUM_EMOJIS.OTP_ID)} To unlock full access to <b>This Bot</b>, You Must Join Our Channel First.\n` +
+        `━━━━━━━━━━━━\n` +
+        `${e('✅', PREMIUM_EMOJIS.DONE)} After Joining, Tap The Button Below To Continue`;
+    
+    const inline_keyboard = (settings.channels || []).map((c: any) => [
+        { text: `Join ${c.name}`, url: c.url }
+    ]);
+    inline_keyboard.push([{ text: "Joined ✅", callback_data: "check_join" }]);
+    await bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+// ... in start logic ...
     const isJoined = await checkForceJoin(userId);
     if (!isJoined) {
-        const inline_keyboard: TelegramBot.InlineKeyboardButton[][] = FORCE_JOIN_CHANNELS.map(c => [
-            { text: `Join ${c.name}`, url: c.url }
-        ]);
-        inline_keyboard.push([{ text: "Joined ✅", callback_data: "check_join" }]);
-        
-        await bot.sendMessage(msg.chat.id, "You must join our channels to use this bot:", {
-            reply_markup: { inline_keyboard }
-        });
+        await showForceJoinMsg(msg.chat.id);
         return;
     }
 
@@ -158,10 +196,183 @@ async function deleteLastMenu(chatId: number, userId: number) {
     }
 }
 
+// Helper for safe message editing
+async function safeEdit(chatId: number, messageId: number, text: string, options: any) {
+    try {
+        await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, ...options });
+    } catch (err: any) {
+        if (err.message && err.message.includes('message to edit not found')) {
+            // Already deleted or moved on, ignore
+            return;
+        }
+        console.error(`[TELEGRAM] SafeEdit Error:`, err.message || err);
+    }
+}
+
+// Global Exception Handler for Promises
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception thrown:', err);
+});
+
+bot.on('polling_error', (err) => {
+    console.error(`[TELEGRAM] Polling Error: ${err.message}`);
+});
+
+const waitingForInput = new Map<number, string>();
+
+bot.on('document', async (msg) => {
+    if (!msg.from || !msg.document) return;
+    const userId = msg.from.id;
+    const chatId = msg.chat.id;
+
+    if (!isAdmin(userId)) return;
+
+    if (waitingForInput.get(userId) === "admin_upload") {
+        if (!msg.document.file_name?.endsWith(".txt")) {
+            await bot.sendMessage(chatId, "❌ Please send a valid .txt file.");
+            return;
+        }
+
+        waitingForInput.delete(userId);
+        await bot.sendMessage(chatId, `${e("🔹", PREMIUM_EMOJIS.DOT)} Enter Service Name:`, { parse_mode: 'HTML' });
+        waitingForInput.set(userId, `svc_name:${msg.document.file_id}:${msg.document.file_name}`);
+    }
+});
+
 bot.on('message', async (msg) => {
     if (!msg.text || !msg.from) return;
     const userId = msg.from.id;
     const chatId = msg.chat.id;
+
+    // Handle administrative input states
+    const state = waitingForInput.get(userId);
+    if (state) {
+        try {
+            const settings = getSettings();
+            const input = msg.text.trim();
+            
+            if (state === "add_admin") {
+            if (!settings.admins.includes(input)) {
+                settings.admins.push(input);
+                writeJson("settings.json", settings);
+                await bot.sendMessage(chatId, `✅ Admin ${input} added!`);
+            }
+            waitingForInput.delete(userId);
+            showManageAdmins(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state === "add_otp_group") {
+            if (!settings.otp_groups.includes(input)) {
+                settings.otp_groups.push(input);
+                writeJson("settings.json", settings);
+                await bot.sendMessage(chatId, `✅ Group ${input} added!`);
+            }
+            waitingForInput.delete(userId);
+            showManageOtpGroups(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state === "set_otp_link") {
+            if (input.startsWith("http")) {
+                settings.otp_link = input;
+                writeJson("settings.json", settings);
+                await bot.sendMessage(chatId, `✅ OTP Link updated!`);
+            }
+            waitingForInput.delete(userId);
+            showSettingsPanel(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state === "add_channel") {
+            if (input.includes("|")) {
+                const parts = input.split("|").map(p => p.trim());
+                if (parts.length === 3) {
+                    settings.channels.push({ name: parts[0], url: parts[1], username: parts[2] });
+                    writeJson("settings.json", settings);
+                    await bot.sendMessage(chatId, `✅ Channel ${parts[0]} added!`);
+                }
+            }
+            waitingForInput.delete(userId);
+            showManageForceJoin(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state === "add_otp_msg_btn") {
+            if (input.includes("|")) {
+                const parts = input.split("|").map(p => p.trim());
+                if (parts.length === 2) {
+                    if (!settings.otp_message_buttons) settings.otp_message_buttons = [];
+                    settings.otp_message_buttons.push({ text: parts[0], url: parts[1] });
+                    writeJson("settings.json", settings);
+                    await bot.sendMessage(chatId, `✅ OTP Button Added!`);
+                }
+            }
+            waitingForInput.delete(userId);
+            showManageOtpGroups(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state.startsWith("svc_name:")) {
+            const [_, fileId, fileName] = state.split(":");
+            waitingForInput.set(userId, `country_name:${fileId}:${fileName}:${input}`);
+            await bot.sendMessage(chatId, `${e("📍", PREMIUM_EMOJIS.PIN)} Enter Country Name:`, { parse_mode: 'HTML' });
+            return;
+        } else if (state.startsWith("country_name:")) {
+            const [_, fileId, fileName, service] = state.split(":");
+            const country = input;
+            waitingForInput.delete(userId);
+            const statusMsg = await bot.sendMessage(chatId, `${e("⏳", PREMIUM_EMOJIS.WAIT)} Processing file...`, { parse_mode: 'HTML' });
+            
+            try {
+                const fileLink = await bot.getFileLink(fileId);
+                const response = await fetch(fileLink);
+                const text = await response.text();
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+                
+                const numbers = readJson("numbers.json");
+                const files = readJson("files.json");
+                const fid = Date.now().toString();
+                
+                files.push({ id: fid, fileName, service, country, count: lines.length });
+                lines.forEach(line => {
+                    numbers.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        number: line.trim(),
+                        service,
+                        country,
+                        used: false,
+                        fileId: fid
+                    });
+                });
+                
+                writeJson("numbers.json", numbers);
+                writeJson("files.json", files);
+                
+                await bot.deleteMessage(chatId, statusMsg.message_id);
+                await bot.sendMessage(chatId, `${e("✅", PREMIUM_EMOJIS.DONE)} Success! ${lines.length} numbers added.`, { parse_mode: 'HTML' });
+            } catch (err: any) {
+                await bot.sendMessage(chatId, `❌ Error: ${err.message}`);
+            }
+            showAdminPanel(chatId, undefined, userId);
+            return;
+        } else if (state === "admin_broadcast") {
+            const users = readJson("users.json");
+            let count = 0;
+            const statusMsg = await bot.sendMessage(chatId, `${e("📢", PREMIUM_EMOJIS.BROADCAST)} Broadcasting...`, { parse_mode: 'HTML' });
+            
+            for (const u of users) {
+                try {
+                    await bot.copyMessage(u.uid, chatId, msg.message_id);
+                    count++;
+                } catch {}
+            }
+            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} Broadcast complete! Sent to ${count} users.`, {
+                chat_id: chatId,
+                message_id: statusMsg.message_id,
+                parse_mode: 'HTML'
+            });
+            waitingForInput.delete(userId);
+            return;
+        }
+    } catch (adminInputErr: any) {
+        console.error(`[ADMIN] Input handler error:`, adminInputErr.message || adminInputErr);
+        waitingForInput.delete(userId);
+    }
+}
 
     if (msg.text.startsWith('/')) return;
 
@@ -194,7 +405,7 @@ bot.on('message', async (msg) => {
         };
         const sent = await bot.sendMessage(chatId, supportText, { parse_mode: 'HTML', reply_markup });
         lastMenus.set(userId, sent.message_id);
-    } else if (msg.text === "👑 Admin Panel" && userId === ADMIN_ID) {
+    } else if (msg.text === "👑 Admin Panel" && isAdmin(userId)) {
         try { await bot.deleteMessage(chatId, msg.message_id); } catch (e) {}
         await deleteLastMenu(chatId, userId);
         showAdminPanel(chatId, undefined, userId);
@@ -228,6 +439,136 @@ async function showServices(chatId: number, messageId?: number, userId?: number)
     }
 }
 
+function showSettingsPanel(chatId: number, messageId: number) {
+    const text = `${e("⚙️", PREMIUM_EMOJIS.NOTE)} <b>BOT SETTINGS CENTER</b> ${e("⚙️", PREMIUM_EMOJIS.NOTE)}\n` +
+                 `━━━━━━━━━━━━━\n\n` +
+                 `Welcome to the bot configuration hub. Select a category below to manage your bot instance.`;
+    
+    const inline_keyboard = [
+        [{ text: "📢 Force Join System", callback_data: "manage_force_join" }],
+        [{ text: "👥 Admin Management", callback_data: "manage_admins" }],
+        [{ text: "💬 OTP Group System", callback_data: "manage_otp_groups" }],
+        [{ text: "🔗 Bot OTP Button Link", callback_data: "manage_bot_otp_link" }],
+        [{ text: "🔙 Back to Admin", callback_data: "admin_panel_back" }]
+    ];
+    
+    bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+async function showManageForceJoin(chatId: number, messageId: number) {
+    const settings = getSettings();
+    const status = settings.force_join ? "Active ✅" : "Disabled ❌";
+    
+    let text = `${e("📢", PREMIUM_EMOJIS.BROADCAST)} <b>FORCE JOIN SYSTEM</b>\n` +
+               `━━━━━━━━━━━━━\n\n` +
+               `Current Status: <b>${status}</b>\n\n` +
+               `<b>Active Channels:</b>\n`;
+    
+    const channels = settings.channels || [];
+    const inline_keyboard: any[] = [];
+    
+    if (channels.length === 0) {
+        text += "  • No channels configured.\n";
+    } else {
+        channels.forEach((c: any, i: number) => {
+            text += `  ${i+1}. ${c.name} (<code>${c.username}</code>)\n`;
+            inline_keyboard.push([{ text: `🗑 Delete ${c.name}`, callback_data: `del_chan:${i}` }]);
+        });
+    }
+    
+    text += `\n━━━━━━━━━━━━━`;
+    
+    const toggleBtn = settings.force_join ? "OFF ❌" : "ON ✅";
+    inline_keyboard.push([{ text: `Toggle Force Join: ${toggleBtn}`, callback_data: "toggle_force_join" }]);
+    inline_keyboard.push([{ text: "➕ Add Channel", callback_data: "add_channel" }]);
+    if (channels.length > 0) inline_keyboard.push([{ text: "🗑 Delete All Channels", callback_data: "reset_channels" }]);
+    inline_keyboard.push([{ text: "🔙 Back", callback_data: "admin_settings" }]);
+    
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+async function showManageAdmins(chatId: number, messageId: number) {
+    const settings = getSettings();
+    let text = `${e("👤", PREMIUM_EMOJIS.USER)} <b>ADMIN MANAGEMENT</b>\n` +
+               `━━━━━━━━━━━━━\n\n` +
+               `Master Admin: <code>${ADMIN_ID}</code> (Immortal)\n\n` +
+               `<b>Co-Admins:</b>\n`;
+    
+    const admins = settings.admins || [];
+    const inline_keyboard: any[] = [];
+    
+    if (admins.length === 0) {
+        text += "  • No co-admins added.\n";
+    } else {
+        admins.forEach((a: any) => {
+            text += `  • <code>${a}</code>\n`;
+            inline_keyboard.push([{ text: `🗑 Remove Admin ${a}`, callback_data: `del_admin:${a}` }]);
+        });
+    }
+            
+    text += `\n━━━━━━━━━━━━━`;
+    inline_keyboard.push([{ text: "➕ Add Admin", callback_data: "add_admin" }]);
+    if (admins.length > 0) inline_keyboard.push([{ text: "🗑 Remove All Co-Admins", callback_data: "reset_admins" }]);
+    inline_keyboard.push([{ text: "🔙 Back", callback_data: "admin_settings" }]);
+    
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+async function showManageOtpGroups(chatId: number, messageId: number) {
+    const settings = getSettings();
+    let text = `${e("💬", PREMIUM_EMOJIS.SUPPORT)} <b>OTP GROUP SYSTEM</b>\n` +
+               `━━━━━━━━━━━━━\n\n` +
+               `<b>Forwarding Groups:</b>\n`;
+    
+    const groups = settings.otp_groups || [];
+    const inline_keyboard: any[] = [];
+    
+    if (groups.length === 0) {
+        text += "  • No groups added.\n";
+    } else {
+        groups.forEach((g: any) => {
+            text += `  • <code>${g}</code>\n`;
+            inline_keyboard.push([{ text: `🗑 Remove Group ${g}`, callback_data: `del_otp_grp:${g}` }]);
+        });
+    }
+            
+    text += `\n<b>OTP Msg Extra Buttons:</b>\n`;
+    const buttons = settings.otp_message_buttons || [];
+    if (buttons.length === 0) {
+        text += "  • No extra buttons configured.\n";
+    } else {
+        buttons.forEach((b: any, i: number) => {
+            text += `  ${i+1}. ${b.text} (🔗)\n`;
+            inline_keyboard.push([{ text: `🗑 Delete Btn: ${b.text}`, callback_data: `del_otp_btn:${i}` }]);
+        });
+    }
+
+    text += `\n━━━━━━━━━━━━━`;
+    inline_keyboard.push([{ text: "➕ Add Forwarding Group", callback_data: "add_otp_group" }]);
+    inline_keyboard.push([{ text: "➕ Add OTP Inline Button", callback_data: "add_otp_msg_btn" }]);
+    if (groups.length > 0 || buttons.length > 0) inline_keyboard.push([{ text: "🗑 Reset OTP System", callback_data: "reset_otp_groups" }]);
+    inline_keyboard.push([{ text: "🔙 Back", callback_data: "admin_settings" }]);
+    
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+async function showBotKeypadSettings(chatId: number, messageId: number) {
+    const settings = getSettings();
+    const link = settings.otp_link || "https://t.me/dxaotpzone";
+    const text = `${e("🔗", PREMIUM_EMOJIS.PIN)} <b>BOT OTP BUTTON LINK</b>\n` +
+                 `━━━━━━━━━━━━━\n\n` +
+                 `This link is used for the '💬 OTP Group' button displayed after a user allocates numbers.\n\n` +
+                 `Current Link: <b>${link}</b>\n\n` +
+                 `━━━━━━━━━━━━━`;
+    
+    const inline_keyboard = [
+        [{ text: "✏️ Edit Link", callback_data: "set_otp_link" }],
+        [{ text: "🔙 Back", callback_data: "admin_settings" }]
+    ];
+    
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
 async function showAdminPanel(chatId: number, messageId?: number, userId?: number) {
     const users = readJson("users.json");
     const numbers = readJson("numbers.json");
@@ -255,9 +596,8 @@ async function showAdminPanel(chatId: number, messageId?: number, userId?: numbe
         `━━━━━━━━━━━━━`;
 
     const inline_keyboard = [
-        [{ text: "📤 Upload Numbers", callback_data: "admin_upload" }],
-        [{ text: "🗑 Delete Files", callback_data: "admin_delete_files" }],
-        [{ text: "📢 Broadcast", callback_data: "admin_broadcast" }],
+        [{ text: "📤 Upload Numbers", callback_data: "admin_upload" }, { text: "🗑 Delete Files", callback_data: "admin_delete_files" }],
+        [{ text: "📢 Broadcast", callback_data: "admin_broadcast" }, { text: "⚙️ Settings", callback_data: "admin_settings" }],
         [{ text: "✅ Used Numbers", callback_data: "view_used" }, { text: "🚀 Unused Numbers", callback_data: "view_unused" }],
         [{ text: "🔙 Back", callback_data: "close_menu" }]
     ];
@@ -278,6 +618,23 @@ bot.on('callback_query', async (query) => {
     const userId = query.from.id;
 
     if (!chatId || !messageId || !data) return;
+
+    // Admin Panel Guards
+    const ADMIN_ACTIONS = [
+        "manage_force_join", "manage_admins", "manage_otp_groups", "manage_bot_otp_link", 
+        "admin_settings", "add_admin", "reset_admins", "add_otp_group", "reset_otp_groups",
+        "set_otp_link", "toggle_force_join", "reset_channels", "add_channel", "admin_upload",
+        "admin_broadcast", "admin_delete_files", "admin_panel_back", "view_used", "view_unused",
+        "add_otp_msg_btn", "reset_otp_groups"
+    ];
+    
+    const isAdminAction = ADMIN_ACTIONS.some(act => data.startsWith(act)) || 
+                          ["del_chan:", "del_admin:", "del_otp_grp:", "del_otp_btn:", "del_file:"].some(pref => data.startsWith(pref));
+    
+    if (isAdminAction && !isAdmin(userId)) {
+        await bot.answerCallbackQuery(query.id, { text: "❌ Limited to Admins only!", show_alert: true });
+        return;
+    }
 
     if (data === "check_join") {
         const isJoined = await checkForceJoin(userId);
@@ -381,7 +738,7 @@ bot.on('callback_query', async (query) => {
 
         const inline_keyboard = [
             [{ text: "🔄 Change Number", callback_data: `sel_country:${service}:${country}` }],
-            [{ text: "💬 OTP Group", url: "https://t.me/dxaotpzone" }],
+            [{ text: "💬 OTP Group", url: getSettings().otp_link || "https://t.me/dxaotpzone" }],
             [{ text: "🔙 Back", callback_data: "back_to_services" }]
         ];
 
@@ -391,87 +748,119 @@ bot.on('callback_query', async (query) => {
             parse_mode: 'HTML',
             reply_markup: { inline_keyboard }
         });
+    } else if (data === "manage_force_join") {
+        showManageForceJoin(chatId, messageId);
+    } else if (data === "manage_admins") {
+        showManageAdmins(chatId, messageId);
+    } else if (data === "manage_otp_groups") {
+        showManageOtpGroups(chatId, messageId);
+    } else if (data === "manage_bot_otp_link") {
+        showBotKeypadSettings(chatId, messageId);
+    } else if (data.startsWith("del_chan:")) {
+        const idx = parseInt(data.split(":")[1]);
+        const settings = getSettings();
+        if (settings.channels && settings.channels[idx]) {
+            settings.channels.splice(idx, 1);
+            writeJson("settings.json", settings);
+            await bot.answerCallbackQuery(query.id, { text: "Channel Deleted" });
+        }
+        showManageForceJoin(chatId, messageId);
+    } else if (data.startsWith("del_admin:")) {
+        const uid = data.split(":")[1];
+        const settings = getSettings();
+        settings.admins = (settings.admins || []).filter((a: any) => a !== uid);
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "Admin Removed" });
+        showManageAdmins(chatId, messageId);
+    } else if (data.startsWith("del_otp_grp:")) {
+        const gid = data.split(":")[1];
+        const settings = getSettings();
+        settings.otp_groups = (settings.otp_groups || []).filter((g: any) => g !== gid);
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "Group Removed" });
+        showManageOtpGroups(chatId, messageId);
+    } else if (data.startsWith("del_otp_btn:")) {
+        const idx = parseInt(data.split(":")[1]);
+        const settings = getSettings();
+        if (settings.otp_message_buttons && settings.otp_message_buttons[idx]) {
+            settings.otp_message_buttons.splice(idx, 1);
+            writeJson("settings.json", settings);
+            await bot.answerCallbackQuery(query.id, { text: "Button Deleted" });
+        }
+        showManageOtpGroups(chatId, messageId);
+    } else if (data === "add_otp_msg_btn") {
+        await safeEdit(chatId, messageId, "➕ <b>ADD OTP BUTTON</b>\n━━━━━━━━━━━━━\nSend button details as:\n<code>Button Name | https://link.com</code>", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "manage_otp_groups" }]] }
+        });
+        waitingForInput.set(userId, "add_otp_msg_btn");
+    } else if (data === "admin_settings") {
+        showSettingsPanel(chatId, messageId);
+    } else if (data === "toggle_force_join") {
+        const settings = getSettings();
+        settings.force_join = !settings.force_join;
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "Settings Updated!" });
+        showManageForceJoin(chatId, messageId);
+    } else if (data === "reset_admins") {
+        const settings = getSettings();
+        settings.admins = [];
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "Admins list cleared!" });
+        showManageAdmins(chatId, messageId);
+    } else if (data === "reset_channels") {
+        const settings = getSettings();
+        settings.channels = [];
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "Channels list cleared!" });
+        showManageForceJoin(chatId, messageId);
+    } else if (data === "reset_otp_groups") {
+        const settings = getSettings();
+        settings.otp_groups = [];
+        settings.otp_message_buttons = [];
+        writeJson("settings.json", settings);
+        await bot.answerCallbackQuery(query.id, { text: "OTP System Reset!" });
+        showManageOtpGroups(chatId, messageId);
+    } else if (data === "add_admin") {
+        await safeEdit(chatId, messageId, "➕ <b>ADD NEW ADMIN</b>\n━━━━━━━━━━━━━\nPlease send the Telegram User ID of the new admin:", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_settings" }]] }
+        });
+        waitingForInput.set(userId, "add_admin");
+    } else if (data === "add_otp_group") {
+        await safeEdit(chatId, messageId, "➕ <b>ADD OTP GROUP</b>\n━━━━━━━━━━━━━\nPlease send the Group ID (with -100 prefix):", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_settings" }]] }
+        });
+        waitingForInput.set(userId, "add_otp_group");
+    } else if (data === "set_otp_link") {
+        await safeEdit(chatId, messageId, "🔗 <b>SET OTP LINK</b>\n━━━━━━━━━━━━━\nPlease send the new invitation link:", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_settings" }]] }
+        });
+        waitingForInput.set(userId, "set_otp_link");
+    } else if (data === "add_channel") {
+        await safeEdit(chatId, messageId, "➕ <b>ADD NEW CHANNEL</b>\n━━━━━━━━━━━━━\nPlease send channel details in following format:\n\n<code>Channel Name | Public URL | @Username</code>", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_settings" }]] }
+        });
+        waitingForInput.set(userId, "add_channel");
     } else if (data === "admin_upload") {
-        await bot.editMessageText(`${e("📤", PREMIUM_EMOJIS.UPLOAD)} <b>UPLOAD NUMBERS</b>\n━━━━━━━━━━━━━\nPlease send the .txt file containing numbers.`, {
-            chat_id: chatId,
-            message_id: messageId,
+        await safeEdit(chatId, messageId, `${e("📤", PREMIUM_EMOJIS.UPLOAD)} <b>UPLOAD NUMBERS</b>\n━━━━━━━━━━━━━\nPlease send the .txt file containing numbers.`, {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_panel_back" }]]
             }
         });
-        bot.once('document', async (docMsg) => {
-            if (!docMsg.document || !docMsg.document.file_name?.endsWith(".txt")) {
-                await bot.sendMessage(chatId, "❌ Please send a valid .txt file.");
-                return;
-            }
-            const fileMsg = await bot.sendMessage(chatId, `${e("🔹", PREMIUM_EMOJIS.DOT)} Enter Service Name:`, { parse_mode: 'HTML' });
-            bot.once('text', async (serviceMsg) => {
-                const service = serviceMsg.text;
-                const countryMsg = await bot.sendMessage(chatId, `${e("📍", PREMIUM_EMOJIS.PIN)} Enter Country Name:`, { parse_mode: 'HTML' });
-                bot.once('text', async (countryMsgResp) => {
-                    const country = countryMsgResp.text!;
-                    const statusMsg = await bot.sendMessage(chatId, `${e("⏳", PREMIUM_EMOJIS.WAIT)} Processing file...`, { parse_mode: 'HTML' });
-                    
-                    try {
-                        const fileLink = await bot.getFileLink(docMsg.document!.file_id);
-                        const response = await fetch(fileLink);
-                        const text = await response.text();
-                        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-                        
-                        const numbers = readJson("numbers.json");
-                        const files = readJson("files.json");
-                        const fileId = Date.now().toString();
-                        
-                        files.push({ id: fileId, fileName: docMsg.document!.file_name, service, country, count: lines.length });
-                        lines.forEach(line => {
-                            numbers.push({
-                                id: Math.random().toString(36).substr(2, 9),
-                                number: line.trim(),
-                                service,
-                                country,
-                                used: false,
-                                fileId
-                            });
-                        });
-                        
-                        writeJson("numbers.json", numbers);
-                        writeJson("files.json", files);
-                        
-                        await bot.deleteMessage(chatId, statusMsg.message_id);
-                        await bot.sendMessage(chatId, `${e("✅", PREMIUM_EMOJIS.DONE)} Success! ${lines.length} numbers added.`, { parse_mode: 'HTML' });
-                    } catch (err: any) {
-                        await bot.sendMessage(chatId, `❌ Error: ${err.message}`);
-                    }
-                });
-            });
-        });
+        waitingForInput.set(userId, "admin_upload");
     } else if (data === "admin_broadcast") {
-        await bot.editMessageText(`${e("📢", PREMIUM_EMOJIS.BROADCAST)} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend the message to broadcast:`, {
-            chat_id: chatId,
-            message_id: messageId,
+        await safeEdit(chatId, messageId, `${e("📢", PREMIUM_EMOJIS.BROADCAST)} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend the message to broadcast:`, {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_panel_back" }]]
             }
         });
-        bot.once('message', async (bcMsg) => {
-            const users = readJson("users.json");
-            let count = 0;
-            const statusMsg = await bot.sendMessage(chatId, `${e("📢", PREMIUM_EMOJIS.BROADCAST)} Broadcasting...`, { parse_mode: 'HTML' });
-            
-            for (const u of users) {
-                try {
-                    await bot.copyMessage(u.uid, chatId, bcMsg.message_id);
-                    count++;
-                } catch {}
-            }
-            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} Broadcast complete! Sent to ${count} users.`, {
-                chat_id: chatId,
-                message_id: statusMsg.message_id,
-                parse_mode: 'HTML'
-            });
-        });
+        waitingForInput.set(userId, "admin_broadcast");
     } else if (data === "admin_delete_files") {
         const files = readJson("files.json");
         if (files.length === 0) {
@@ -643,20 +1032,24 @@ async function fetchOtps() {
 
                 // Get service specific premium emoji
                 const serviceKey = service.toString().toUpperCase().replace(/\s+/g, '');
-                const premium = APP_EMOJIS[serviceKey] || (serviceKey === 'ROCKET' ? APP_EMOJIS['ROCKET_APP'] : null);
-                
                 let serviceIcon;
+                
+                const premium = APP_EMOJIS[serviceKey];
                 if (premium) {
                     serviceIcon = e(premium[0], premium[1]);
                 } else {
-                    // Default premium emoji for unknown services as requested
-                    serviceIcon = e("💬", "5337302974806922068");
+                    // Default premium icon for unknown services
+                    serviceIcon = e("🖥", PREMIUM_EMOJIS.SUPPORT);
                 }
 
                 // Format: Icon Service Number
                 const msgBody = `${serviceIcon} <b>${service}</b>  <code>${normalizedApiNum}</code>`;
+                const maskedNum = normalizedApiNum.length >= 7 
+                    ? `${normalizedApiNum.slice(0, 3)}DXA${normalizedApiNum.slice(-4)}`
+                    : normalizedApiNum;
+                const groupMsgBody = `${serviceIcon} <b>${service}</b>  <code>${maskedNum}</code>`;
 
-                const reply_markup = {
+                const reply_markup: any = {
                     inline_keyboard: [
                         [{ 
                             text: `📋 ${code}`, 
@@ -665,21 +1058,38 @@ async function fetchOtps() {
                     ]
                 };
 
+                // Add custom buttons from settings
+                const settings = getSettings();
+                (settings.otp_message_buttons || []).forEach((btn: any) => {
+                    reply_markup.inline_keyboard.push([{ text: btn.text, url: btn.url }]);
+                });
+
                 try {
                     await bot.sendMessage(match.assignedTo, msgBody, { 
                         parse_mode: 'HTML', 
                         reply_markup 
                     });
-                    processedMessages.add(msgId);
-                    console.log(`[OTP] SUCCESS: Sent ${code} to ${match.assignedTo}`);
-                } catch (sendErr) {
-                    console.error(`[OTP] Send failed to ${match.assignedTo}:`, sendErr);
+                    
+                    // Forward to OTP Groups
+                    for (const gId of (settings.otp_groups || [])) {
+                        try {
+                    const targetId = /^-?\d+$/.test(gId.toString()) ? parseInt(gId.toString()) : gId;
+                    await bot.sendMessage(targetId, groupMsgBody, { parse_mode: 'HTML', reply_markup }); 
+                } catch (forwardErr: any) {
+                    console.error(`[OTP] Forward to group ${gId} failed:`, forwardErr.message || "Unknown Error");
                 }
             }
+
+            processedMessages.add(msgId);
+            console.log(`[OTP] SUCCESS: Sent ${code} to ${match.assignedTo}`);
+        } catch (sendErr: any) {
+            console.error(`[OTP] Send failed to ${match.assignedTo}:`, sendErr.message || "Unknown Error");
         }
-    } catch (err) {
-        console.error("[OTP] Global fetch error:", err);
     }
+}
+} catch (err: any) {
+console.error("[OTP] Global fetch error:", err.message || "Network Error");
+}
 }
 
 // --- Server Setup ---
@@ -692,16 +1102,28 @@ async function startServer() {
 
     // API Routes for Dashboard
     app.get('/api/stats', (req, res) => {
-        const users = readJson("users.json");
-        const numbers = readJson("numbers.json");
-        const files = readJson("files.json");
-        res.json({
-            users: users.length,
-            totalNumbers: numbers.length,
-            availableNumbers: numbers.filter((n: any) => !n.used).length,
-            assignedNumbers: numbers.filter((n: any) => n.used).length,
-            files: files.length
-        });
+        try {
+            const users = readJson("users.json");
+            // Ensure at least one entry if empty for demo
+            if (users.length === 0) {
+                users.push({ uid: "8197284774", username: "asikisback16", joinedAt: new Date().toString() });
+                writeJson("users.json", users);
+            }
+            const numbers = readJson("numbers.json");
+            const files = readJson("files.json");
+            const settings = getSettings();
+            res.json({
+                users: users.length,
+                totalNumbers: numbers.length,
+                availableNumbers: numbers.filter((n: any) => !n.used).length,
+                assignedNumbers: numbers.filter((n: any) => n.used).length,
+                files: files.length,
+                settings: settings
+            });
+        } catch (err: any) {
+            console.error("[API] Stats Error:", err.message);
+            res.status(500).json({ error: "Internal Server Error", message: err.message });
+        }
     });
 
     if (process.env.NODE_ENV !== "production") {

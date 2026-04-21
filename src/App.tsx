@@ -13,16 +13,25 @@ interface Stats {
   availableNumbers: number;
   assignedNumbers: number;
   files: number;
+  settings?: any;
 }
 
 export default function App() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new TypeError("Oops, we haven't got JSON!");
+        }
         const data = await response.json();
         setStats(data);
       } catch (error) {
@@ -99,106 +108,209 @@ export default function App() {
             animate={{ x: 0, opacity: 1 }}
             className="flex gap-4"
           >
-            <a 
-              href="https://t.me/dxa_universe" 
-              target="_blank" 
-              className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-300 flex items-center gap-2 group"
+            <button 
+              onClick={() => setActiveTab('overview')}
+              className={`px-6 py-3 rounded-xl transition-all duration-300 font-medium ${activeTab === 'overview' ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10 border border-white/10'}`}
             >
-              <Github size={18} className="group-hover:rotate-12 transition-transform" />
-              <span>DXA UNIVERSE</span>
-            </a>
+              Overview
+            </button>
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`px-6 py-3 rounded-xl transition-all duration-300 font-medium ${activeTab === 'settings' ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10 border border-white/10'}`}
+            >
+              Settings
+            </button>
           </motion.div>
         </header>
 
-        {/* Stats Grid */}
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          <StatCard 
-            icon={<Users className="text-blue-400" />}
-            label="Total Users"
-            value={stats?.users || 0}
-            subValue="Actively using bot"
-            variant={item}
-          />
-          <StatCard 
-            icon={<Hash className="text-purple-400" />}
-            label="Total Numbers"
-            value={stats?.totalNumbers || 0}
-            subValue="Numbers in system"
-            variant={item}
-          />
-          <StatCard 
-            icon={<CheckCircle className="text-emerald-400" />}
-            label="Available"
-            value={stats?.availableNumbers || 0}
-            subValue={`${Math.round((stats?.availableNumbers || 0) / (stats?.totalNumbers || 1) * 100)}% Stock`}
-            variant={item}
-          />
-          <StatCard 
-            icon={<FileText className="text-orange-400" />}
-            label="Files Processed"
-            value={stats?.files || 0}
-            subValue="Number sets uploaded"
-            variant={item}
-          />
-        </motion.div>
+        {activeTab === 'overview' ? (
+          <>
+            {/* Stats Grid */}
+            <motion.div 
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              <StatCard 
+                icon={<Users className="text-blue-400" />}
+                label="Total Users"
+                value={stats?.users || 0}
+                subValue="Actively using bot"
+                variant={item}
+              />
+              <StatCard 
+                icon={<Hash className="text-purple-400" />}
+                label="Total Numbers"
+                value={stats?.totalNumbers || 0}
+                subValue="Numbers in system"
+                variant={item}
+              />
+              <StatCard 
+                icon={<CheckCircle className="text-emerald-400" />}
+                label="Available"
+                value={stats?.availableNumbers || 0}
+                subValue={`${Math.round((stats?.availableNumbers || 0) / (stats?.totalNumbers || 1) * 100)}% Stock`}
+                variant={item}
+              />
+              <StatCard 
+                icon={<FileText className="text-orange-400" />}
+                label="Files Processed"
+                value={stats?.files || 0}
+                subValue="Number sets uploaded"
+                variant={item}
+              />
+            </motion.div>
 
-        {/* System Logs / Info */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6"
-        >
-          <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
-            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-              <Activity size={20} className="text-blue-500" />
-              Live Bot Activity
-            </h3>
-            <div className="space-y-4">
-              <LogItem time="JUST NOW" action="System Heartbeat" status="success" />
-              <LogItem time="2 MIN AGO" action="Backup synchronization" status="success" />
-              <LogItem time="5 MIN AGO" action="Stats refresh completed" status="success" />
-              <LogItem time="12 MIN AGO" action="Database connection pool" status="success" />
-            </div>
-            
-            <div className="mt-12 p-6 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-              <h4 className="font-medium text-blue-400 mb-2">Bot Instructions</h4>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Connect your Telegram client to <span className="text-blue-400">@dxa_number_bot</span> (or your configured bot). 
-                Make sure you have joined the required channels to bypass the force-join check.
-                Admin panel is restricted to ID <span className="text-white/80 font-mono">8197284774</span>.
-              </p>
-            </div>
-          </div>
+            {/* System Logs / Info */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6"
+            >
+              <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+                <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <Activity size={20} className="text-blue-500" />
+                  Live Bot Activity
+                </h3>
+                <div className="space-y-4">
+                  <LogItem time="JUST NOW" action="System Heartbeat" status="success" />
+                  <LogItem time="2 MIN AGO" action="Backup synchronization" status="success" />
+                  <LogItem time="5 MIN AGO" action="Stats refresh completed" status="success" />
+                  <LogItem time="12 MIN AGO" action="Database connection pool" status="success" />
+                </div>
+                
+                <div className="mt-12 p-6 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
+                  <h4 className="font-medium text-blue-400 mb-2">Bot Instructions</h4>
+                  <p className="text-white/60 text-sm leading-relaxed">
+                    Connect your Telegram client to <span className="text-blue-400">@dxa_number_bot</span> (or your configured bot). 
+                    Make sure you have joined the required channels to bypass the force-join check.
+                    Admin panel is restricted to ID <span className="text-white/80 font-mono">8197284774</span>.
+                  </p>
+                </div>
+              </div>
 
-          <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 rounded-3xl p-8 flex flex-col justify-between">
-            <div>
-              <h3 className="text-2xl font-bold mb-4">Ready to Serve</h3>
-              <p className="text-white/60 text-sm leading-relaxed mb-6">
-                The bot is currently running in the background and listening for requests. 
-                Any updates in the numbers database will reflect instantly here and in the bot commands.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-white/40">API Status</span>
-                <span className="text-emerald-400 font-mono">ONLINE</span>
+              <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 rounded-3xl p-8 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold mb-4">Ready to Serve</h3>
+                  <p className="text-white/60 text-sm leading-relaxed mb-6">
+                    The bot is currently running in the background and listening for requests. 
+                    Any updates in the numbers database will reflect instantly here and in the bot commands.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">API Status</span>
+                    <span className="text-emerald-400 font-mono">ONLINE</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">Latency</span>
+                    <span className="text-white/80 font-mono">24ms</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setLoading(true);
+                      setTimeout(() => window.location.reload(), 1000);
+                    }}
+                    className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-colors shadow-lg shadow-white/10"
+                  >
+                    RESTART BOT
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-white/40">Latency</span>
-                <span className="text-white/80 font-mono">24ms</span>
+            </motion.div>
+          </>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+          >
+            <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+              <h3 className="text-2xl font-bold mb-8 flex items-center gap-2">
+                <Bot size={24} className="text-blue-500" />
+                Core Bot Configuration
+              </h3>
+              
+              <div className="space-y-8">
+                <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
+                  <div>
+                    <h4 className="font-semibold text-lg">Force Join System</h4>
+                    <p className="text-white/40 text-sm">Enforce channel membership for all users</p>
+                  </div>
+                  <div className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest ${stats?.settings?.force_join ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" : "bg-red-500/20 text-red-500 border border-red-500/30"}`}>
+                    {stats?.settings?.force_join ? "Active" : "Disabled"}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-lg mb-4">Required Channels</h4>
+                  <div className="space-y-3">
+                    {stats?.settings?.channels?.map((c: any, i: number) => (
+                      <div key={i} className="p-4 bg-white/[0.03] border border-white/5 rounded-xl flex justify-between items-center">
+                        <span className="font-medium">{c.name}</span>
+                        <span className="text-white/30 font-mono text-xs">{c.username}</span>
+                      </div>
+                    ))}
+                    {(stats?.settings?.channels?.length || 0) === 0 && (
+                      <p className="text-white/20 italic">No channels configured</p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <button className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-white/90 transition-colors shadow-lg shadow-white/10">
-                RESTART BOT
-              </button>
             </div>
-          </div>
-        </motion.div>
+
+            <div className="space-y-8">
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Users size={24} className="text-purple-500" />
+                  Privileged Users
+                </h3>
+                <div className="space-y-2">
+                  <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl flex justify-between items-center">
+                    <span className="text-purple-400 font-bold">8197284774</span>
+                    <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest">Master</span>
+                  </div>
+                  {stats?.settings?.admins?.map((a: any, i: number) => (
+                    <div key={i} className="p-4 bg-white/[0.03] border border-white/5 rounded-xl flex justify-between items-center">
+                      <span className="text-white/70">{a}</span>
+                      <span className="text-white/20 text-[10px] font-bold uppercase tracking-widest italic">Co-Admin</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <FileText size={24} className="text-orange-500" />
+                  Forwarding & Links
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-white/40 text-xs font-mono block mb-2 uppercase tracking-widest">OTP Invitation Link</span>
+                    <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl break-all font-mono text-sm text-orange-400">
+                      {stats?.settings?.otp_link || "https://t.me/dxaotpzone"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-white/40 text-xs font-mono block mb-2 uppercase tracking-widest">Forwarding Group IDs</span>
+                    <div className="flex flex-wrap gap-2">
+                      {stats?.settings?.otp_groups?.map((g: any, i: number) => (
+                        <div key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-white/60">
+                          {g}
+                        </div>
+                      ))}
+                      {(stats?.settings?.otp_groups?.length || 0) === 0 && (
+                        <span className="text-white/20 italic text-sm">None</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
