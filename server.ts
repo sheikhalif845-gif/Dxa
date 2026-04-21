@@ -21,14 +21,13 @@ const PREMIUM_EMOJIS = {
     "DONE": "5352694861990501856", "NUMBER": "5337132498965010628", "SUPPORT": "5337302974806922068",
     "ADMIN": "5353032893096567467", "USER": "5352861489541714456", "FILE": "5352721946054268944",
     "NUMBERS": "5352862640592949843", "ROCKET": "5352597830089347330", "GRAPH": "5352877703043258544",
-    "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5352922460897452503",
+    "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5420517437885943844",
     "DOT": "5352638632278660622", "N1": "5352651766288652742", "N2": "5355186458418257716",
     "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5420130255174145507",
-    "OTP_ID": "5337255927735163754", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
+    "OTP_ID": "5353022963132174959", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
     "DATE": "5352585194295564660", "WARN": "5336944168944047463", "SETTINGS": "5420155432272438703",
     "CHAT": "5337302974806922068", "MEMBER": "5420145051336485498", "ADD": "5420323438508155202",
-    "DELETE": "5422557736330106570", "GIFT": "5420396762189831222", "PC": "5336879280578138635",
-    "WEB": "5336972142066047577", "ARROW": "5420618897898381296", "LINK": "5420517437885943844"
+    "DELETE": "5422557736330106570"
 };
 
 const APP_EMOJIS: { [key: string]: [string, string] } = {
@@ -188,15 +187,15 @@ async function showForceJoinMsg(chatId: number) {
 
     const brand = getBrand();
     const welcomeText = 
-        `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA NUMBER BOT ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
+        `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 𝗗𝗫𝗔 𝗡𝗨𝗠𝗕𝗘𝗥 𝗕𝗢𝗧 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
         `━━━━━━━━━━━\n` +
-        `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from?.first_name}</b>! Welcome to DXA UNIVERSE\n` +
-        `${e("💬", PREMIUM_EMOJIS.CHAT)} System Ready to Generate Numbers\n` +
+        `${e("👋", PREMIUM_EMOJIS.HELLO)} 𝗛𝗲𝗹𝗹𝗼, <b>${msg.from?.first_name}</b>! 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝘁𝗼 𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘\n` +
+        `${e("💬", PREMIUM_EMOJIS.CHAT)} 𝗦𝘆𝘀𝘁𝗲𝗺 𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗡𝘂𝗺𝗯𝗲𝗿𝘀\n` +
         `━━━━━━━━━━━\n` +
-        `${e("📌", PREMIUM_EMOJIS.PIN)} Tap ${e("➤", PREMIUM_EMOJIS.ARROW)} GET NUMBER\n` +
-        `${e("➤", PREMIUM_EMOJIS.ARROW)} To Start Service\n` +
+        `${e("📌", PREMIUM_EMOJIS.PIN)} 𝗧𝗮𝗽 ➤ 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥\n` +
+        `➤ 𝗧𝗼 𝗦𝘁𝗮𝗿𝘁 𝗦𝗲𝗿𝘃𝗶𝗰𝗲\n` +
         `━━━━━━━━━━━\n` +
-        `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE\n` +
+        `${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>\n` +
         `━━━━━━━━━━━`;
 
     await bot.sendMessage(msg.chat.id, welcomeText, {
@@ -440,15 +439,15 @@ bot.on('message', async (msg) => {
         await deleteLastMenu(chatId, userId);
 
         const supportText =
-            `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA SUPPORT ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
+            `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 𝗗𝗫𝗔 𝗦𝗨𝗣𝗣𝗢𝗥𝗧 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
             `━━━━━━━━━━━\n` +
-            `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from.first_name}</b>!\n` +
-            `${e("💬", PREMIUM_EMOJIS.CHAT)} Welcome to DXA Support Panel\n` +
+            `${e("👋", PREMIUM_EMOJIS.HELLO)} 𝗛𝗲𝗹𝗹𝗼, <b>${msg.from.first_name}</b>!\n` +
+            `${e("💬", PREMIUM_EMOJIS.CHAT)} 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝘁𝗼 𝗗𝗫𝗔 𝗦𝘂ｐｐ𝗼𝗿𝘁 𝗣𝗮𝗻𝗲𝗹\n` +
+            `➤ 𝗧𝗲𝗹𝗹 𝗠𝗲 𝗛𝗼𝘄 𝗖𝗮𝗻 𝗜 𝗛𝗲𝗹𝗽 𝗬𝗼𝘂.\n` +
+            `${e("📌", PREMIUM_EMOJIS.PIN)} 𝗧𝗮ｐ 𝗦𝘂ｐｐ𝗼𝗿𝘁 𝗕𝘂𝘁𝘁𝗼𝗻\n` +
+            `➤ 𝗧𝗼 𝗖𝗼𝗻𝘁𝗮𝗰𝘁 𝗧𝗵𝗲 𝗔𝗱𝗺𝗶𝗻!\n` +
             `━━━━━━━━━━━\n` +
-            `${e("📌", PREMIUM_EMOJIS.PIN)} Tap Support Button\n` +
-            `${e("➤", PREMIUM_EMOJIS.ARROW)} To Contact The Admin!\n` +
-            `━━━━━━━━━━━\n` +
-            `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE`;
+            `${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>`;
 
         const reply_markup = {
             inline_keyboard: [
@@ -815,14 +814,14 @@ bot.on('callback_query', async (query) => {
 
         const text = 
             `━━━━━━━━━━━\n` +
-            `《 ${e("✅", PREMIUM_EMOJIS.DONE)} NUMBERS ALLOCATED 》\n` +
+            `《 ${e("✅", PREMIUM_EMOJIS.DONE)} 𝗡𝗨𝗠𝗕𝗘𝗥𝗦 𝗔𝗟𝗟𝗢𝗖𝗔𝗧𝗘𝗗 》\n` +
             `━━━━━━━━━━━\n` +
-            `${e("🔹", PREMIUM_EMOJIS.DOT)} Service ${serviceIcon} ${service}\n` +
-            `${e("📍", PREMIUM_EMOJIS.PIN)} Country ${e("🌐", PREMIUM_EMOJIS.WEB)} ${country}\n` +
+            `${e("🔹", PREMIUM_EMOJIS.DOT)} <b>𝗦𝗲𝗿𝘃𝗶𝗰𝗲</b> ${serviceIcon} <b>${service}</b>\n` +
+            `${e("📍", PREMIUM_EMOJIS.PIN)} <b>𝗖𝗼𝘂𝗻𝘁𝗿𝘆</b> 🌐 <b>${country}</b>\n` +
             `━━━━━━━━━━━\n` +
             formatted.join("\n") + "\n" +
             `━━━━━━━━━━━\n` +
-            `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE\n` +
+            `${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>\n` +
             `━━━━━━━━━━━`;
 
         const inline_keyboard = [
@@ -1149,7 +1148,7 @@ async function fetchOtps() {
                     ? `${normalizedApiNum.slice(0, 3)}${mask}${normalizedApiNum.slice(-4)}`
                     : normalizedApiNum;
                 
-                const groupMsgBody = `${serviceIcon} <b>${service}</b> <code>${maskedNum}</code>`;
+                const groupMsgBody = `${serviceIcon} <b>${service}</b>  <code>${maskedNum}</code>\n\n${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>${brand}</b>`;
 
                 const getOtpMarkup = (specificButtons: any[] | null = null, otpCode: string) => {
                     const m_obj: any = {

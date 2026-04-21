@@ -44,14 +44,14 @@ PREMIUM_EMOJIS = {
     "DONE": "5352694861990501856", "NUMBER": "5337132498965010628", "SUPPORT": "5337302974806922068",
     "ADMIN": "5353032893096567467", "USER": "5352861489541714456", "FILE": "5352721946054268944",
     "NUMBERS": "5352862640592949843", "ROCKET": "5352597830089347330", "GRAPH": "5352877703043258544",
-    "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5352922460897452503",
+    "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5420517437885943844",
     "DOT": "5352638632278660622", "N1": "5352651766288652742", "N2": "5355186458418257716",
     "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5420130255174145507",
     "OTP_ID": "5353022963132174959", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
     "DATE": "5352585194295564660", "WARN": "5336944168944047463", "SETTINGS": "5420155432272438703",
     "CHAT": "5337302974806922068", "MEMBER": "5420145051336485498", "ADD": "5420323438508155202",
     "DELETE": "5422557736330106570", "GIFT": "5420396762189831222", "PC": "5336879280578138635",
-    "WEB": "5336972142066047577", "ARROW": "5420618897898381296", "LINK": "5420517437885943844"
+    "WEB": "5336972142066047577"
 }
 
 cooldowns = {}
@@ -499,15 +499,15 @@ def start(msg):
         return
 
     brand = get_brand()
-    text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA NUMBER BOT {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
+    text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} 𝗗𝗫𝗔 𝗡𝗨𝗠𝗕𝗘𝗥 𝗕𝗢𝗧 {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
             f"━━━━━━━━━━━\n"
-            f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>! Welcome to DXA UNIVERSE\n"
-            f"{e('💬', PREMIUM_EMOJIS['CHAT'])} System Ready to Generate Numbers\n"
+            f"{e('👋', PREMIUM_EMOJIS['HELLO'])} 𝗛𝗲𝗹𝗹𝗼, <b>{msg.from_user.first_name}</b>! 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝘁𝗼 𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘\n"
+            f"{e('💬', PREMIUM_EMOJIS['CHAT'])} 𝗦𝘆𝘀𝘁𝗲𝗺 𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗡𝘂𝗺𝗯𝗲𝗿𝘀\n"
             f"━━━━━━━━━━━\n"
-            f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap {e('➤', PREMIUM_EMOJIS['ARROW'])} GET NUMBER\n"
-            f"{e('➤', PREMIUM_EMOJIS['ARROW'])} To Start Service\n"
+            f"{e('📌', PREMIUM_EMOJIS['PIN'])} 𝗧𝗮𝗽 ➤ 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥\n"
+            f"➤ 𝗧𝗼 𝗦𝘁𝗮𝗿𝘁 𝗦𝗲𝗿𝘃𝗶𝗰𝗲\n"
             f"━━━━━━━━━━━\n"
-            f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE\n"
+            f"{e('😒', PREMIUM_EMOJIS['DXA'])} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘\n"
             f"━━━━━━━━━━━")
     bot.send_message(msg.chat.id, text, reply_markup=get_main_keyboard(user_id))
 
@@ -529,15 +529,15 @@ def handle_msg(msg):
         try: bot.delete_message(chat_id, msg.message_id) 
         except: pass
         delete_last_menu(chat_id, user_id)
-        text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA SUPPORT {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
+        text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} 𝗗𝗫𝗔 𝗦𝗨𝗣𝗣𝗢𝗥𝗧 {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
                 f"━━━━━━━━━━━\n"
-                f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>!\n"
-                f"{e('💬', PREMIUM_EMOJIS['CHAT'])} Welcome to DXA Support Panel\n"
+                f"{e('👋', PREMIUM_EMOJIS['HELLO'])} 𝗛𝗲𝗹𝗹𝗼, <b>{msg.from_user.first_name}</b>!\n"
+                f"{e('💬', PREMIUM_EMOJIS['CHAT'])} 𝗪𝗲𝗹𝗰𝗼𝗺𝗲 𝘁𝗼 𝗗𝗫𝗔 𝗦𝘂ｐ𝗽𝗼𝗿𝘁 𝗣𝗮𝗻𝗲𝗹\n"
+                f"➤ 𝗧𝗲𝗹𝗹 𝗠𝗲 𝗛𝗼𝘄 𝗖𝗮𝗻 𝗜 𝗛𝗲𝗹𝗽 𝗬𝗼𝘂.\n"
+                f"{e('📌', PREMIUM_EMOJIS['PIN'])} 𝗧𝗮ｐ 𝗦𝘂ｐ𝗽𝗼𝗿𝘁 𝗕𝘂𝘁𝘁𝗼𝗻\n"
+                f"➤ 𝗧𝗼 𝗖𝗼𝗻𝘁𝗮𝗰𝘁 𝗧𝗵𝗲 𝗔𝗱𝗺𝗶𝗻!\n"
                 f"━━━━━━━━━━━\n"
-                f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap Support Button\n"
-                f"{e('➤', PREMIUM_EMOJIS['ARROW'])} To Contact The Admin!\n"
-                f"━━━━━━━━━━━\n"
-                f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE")
+                f"😒 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>")
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['SUPPORT'])} Support Center", url="https://t.me/asik_x_bd_bot"))
         markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
@@ -835,14 +835,14 @@ def callback(call):
         icon = e(prem[0], prem[1]) if prem else e("🖥", PREMIUM_EMOJIS['SUPPORT'])
 
         text = (f"━━━━━━━━━━━\n"
-                f"《 {e('✅', PREMIUM_EMOJIS['DONE'])} NUMBERS ALLOCATED 》\n"
+                f"《 {e('✅', PREMIUM_EMOJIS['DONE'])} 𝗡𝗨𝗠𝗕𝗘𝗥𝗦 𝗔𝗟𝗟𝗢𝗖𝗔𝗧𝗘𝗗 》\n"
                 f"━━━━━━━━━━━\n"
-                f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Service {icon} {service}\n"
-                f"{e('📍', PREMIUM_EMOJIS['PIN'])} Country {e('🌐', PREMIUM_EMOJIS['WEB'])} {country}\n"
+                f"{e('🔹', PREMIUM_EMOJIS['DOT'])} <b>𝗦𝗲𝗿𝘃𝗶𝗰𝗲</b> {icon} <b>{service}</b>\n"
+                f"{e('📍', PREMIUM_EMOJIS['PIN'])} <b>𝗖𝗼𝘂𝗻𝘁𝗿𝘆</b> 🌐 <b>{country}</b>\n"
                 f"━━━━━━━━━━━\n"
                 f"{chr(10).join(formatted)}\n"
                 f"━━━━━━━━━━━\n"
-                f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE\n"
+                f"{e('😒', PREMIUM_EMOJIS['DXA'])} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>\n"
                 f"━━━━━━━━━━━")
         
         markup = types.InlineKeyboardMarkup()
@@ -1048,57 +1048,110 @@ def fetch_otps():
                         else:
                             icon = e("🖥", PREMIUM_EMOJIS['SUPPORT'])
                         
-                norm_api = normalize_num(num_api)
-                otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
-                if otp_match:
-                    code = otp_match.group(0)
-                    serv_key = str(serv).upper().replace(" ", "")
-                    
-                    premium = APP_EMOJIS.get(serv_key)
-                    icon = e(premium[0], premium[1]) if premium else e("🖥", PREMIUM_EMOJIS['PC'])
-                    
-                    mask = get_mask()
-                    masked_num = f"{norm_api[:3]}{mask}{norm_api[-4:]}" if len(norm_api) >= 7 else norm_api
-                    
-                    group_body = f"{icon} <b>{serv}</b> <code>{masked_num}</code>"
+                        # 1. ALWAYS Forward to OTP Groups
+                        mask = get_mask()
+                        masked_num = f"{norm_api[:3]}{mask}{norm_api[-4:]}" if len(norm_api) >= 7 else norm_api
+                        group_body = f"{icon} <b>{serv}</b>  <code>{masked_num}</code>\n\n{e('😒', PREMIUM_EMOJIS['DXA'])} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>{get_brand()}</b>"
+                        
+                        def get_markup_local(specific_buttons=None):
+                            m_obj = {
+                                "inline_keyboard": [
+                                    [{
+                                        "text": f"📋 {code}",
+                                        "copy_text": {"text": code}
+                                    }]
+                                ]
+                            }
+                            btns = specific_buttons if specific_buttons is not None else settings.get("otp_message_buttons", [])
+                            for btn in btns:
+                                m_obj["inline_keyboard"].append([{"text": btn["text"], "url": btn["url"]}])
+                            return json.dumps(m_obj)
 
-                    def get_markup_local(specific_buttons=None):
-                        m_obj = {
-                            "inline_keyboard": [
-                                [{"text": f"📋 {code}", "copy_text": {"text": code}}]
-                            ]
-                        }
-                        btns = specific_buttons if specific_buttons is not None else settings.get("otp_message_buttons", [])
-                        for btn in btns:
-                            m_obj["inline_keyboard"].append([{"text": btn["text"], "url": btn["url"]}])
-                        return json.dumps(m_obj)
+                        group_buttons = settings.get("group_buttons", {})
+                        for g_id in settings.get("otp_groups", []):
+                            try:
+                                target_id = int(g_id) if str(g_id).replace('-', '').isdigit() else g_id
+                                spec_btns = group_buttons.get(str(g_id))
+                                bot.send_message(target_id, group_body, reply_markup=get_markup_local(spec_btns))
+                            except Exception as e_forward:
+                                print(f"[OTP] Group {g_id} forward failed: {str(e_forward)}")
 
-                    # 1. Forward to Groups
-                    group_buttons = settings.get("group_buttons", {})
-                    for g_id in settings.get("otp_groups", []):
-                        try:
-                            target_id = int(g_id) if str(g_id).replace('-', '').isdigit() else g_id
-                            spec_btns = group_buttons.get(str(g_id))
-                            bot.send_message(target_id, group_body, reply_markup=get_markup_local(spec_btns))
-                        except Exception as e_f:
-                            print(f"[OTP] Group {g_id} forward failed: {str(e_f)}")
+                        # 2. Forward to User (Only if assigned & within 24h)
+                        match = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
+                        if match:
+                            iso_ts = tstamp.replace(" ", "T") if " " in tstamp else tstamp
+                            try:
+                                msg_time = datetime.fromisoformat(iso_ts).timestamp() * 1000
+                                if msg_time >= (match.get('assignedAt', 0) - 86400000):
+                                    body = f"{icon} <b>{serv}</b>  <code>{norm_api}</code>"
+                                    bot.send_message(match['assignedTo'], body, reply_markup=get_markup_local())
+                            except: pass
 
-                    # 2. Check for User Match
-                    match = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
+                    processed_messages.add(msg_id)
+                    continue
+
+                    # Old Match Logic
+                    match_old = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
+                    
                     if match:
                         iso_ts = tstamp.replace(" ", "T") if " " in tstamp else tstamp
                         try:
                             msg_time = datetime.fromisoformat(iso_ts).timestamp() * 1000
-                            if msg_time >= (match.get('assignedAt', 0) - 86400000):
-                                user_body = f"{e('🚫', PREMIUM_EMOJIS['CLOSE'])} <b>{serv}</b>  <code>{norm_api}</code>"
-                                bot.send_message(match['assignedTo'], user_body, reply_markup=get_markup_local())
+                            if msg_time < (match.get('assignedAt', 0) - 10000):
+                                processed_messages.add(msg_id)
+                                continue
                         except: pass
 
-                processed_messages.add(msg_id)
+                        otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
+                        if otp_match:
+                            code = otp_match.group(0)
+                            serv_key = str(serv).upper().replace(" ", "")
+                            
+                            premium = APP_EMOJIS.get(serv_key)
+                            if premium:
+                                icon = e(premium[0], premium[1])
+                            else:
+                                icon = e("🖥", PREMIUM_EMOJIS['SUPPORT'])
+                            
+                            body = f"{e('🚫', PREMIUM_EMOJIS['CLOSE'])} <b>{serv}</b>  <code>{norm_api}</code>"
+                            mask = get_mask()
+                            masked_num = f"{norm_api[:3]}{mask}{norm_api[-4:]}" if len(norm_api) >= 7 else norm_api
+                            group_body = f"{icon} <b>{serv}</b>  <code>{masked_num}</code>\n\n{e('😒', PREMIUM_EMOJIS['DXA'])} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>{get_brand()}</b>"
+
+                            def get_markup(specific_buttons=None):
+                                m_obj = {
+                                    "inline_keyboard": [
+                                        [{
+                                            "text": f"📋 {code}",
+                                            "copy_text": {"text": code}
+                                        }]
+                                    ]
+                                }
+                                btns = specific_buttons if specific_buttons is not None else settings.get("otp_message_buttons", [])
+                                for btn in btns:
+                                    m_obj["inline_keyboard"].append([{"text": btn["text"], "url": btn["url"]}])
+                                return json.dumps(m_obj)
+                            
+                            bot.send_message(match['assignedTo'], body, reply_markup=get_markup())
+                            
+                            group_buttons = settings.get("group_buttons", {})
+                            for g_id in settings.get("otp_groups", []):
+                                try:
+                                    target_id = g_id
+                                    if str(g_id).replace('-', '').isdigit():
+                                        target_id = int(g_id)
+                                    
+                                    # Use group-specific buttons or fallback to global ones
+                                    spec_btns = group_buttons.get(str(g_id))
+                                    bot.send_message(target_id, group_body, reply_markup=get_markup(spec_btns))
+                                except Exception as e_forward:
+                                    print(f"[OTP] Forward to {g_id} failed: {str(e_forward)}")
+                                
+                            processed_messages.add(msg_id)
             time.sleep(5)
-        except Exception as e_glob:
-            print(f"[OTP] Fetch error: {str(e_glob)}")
+        except:
             time.sleep(10)
+
 if __name__ == "__main__":
     threading.Thread(target=fetch_otps, daemon=True).start()
     print("Bot is running...")
