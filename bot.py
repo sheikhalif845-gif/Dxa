@@ -46,9 +46,12 @@ PREMIUM_EMOJIS = {
     "NUMBERS": "5352862640592949843", "ROCKET": "5352597830089347330", "GRAPH": "5352877703043258544",
     "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5352922460897452503",
     "DOT": "5352638632278660622", "N1": "5352651766288652742", "N2": "5355186458418257716",
-    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5336997731481193790",
+    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5420130255174145507",
     "OTP_ID": "5353022963132174959", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
-    "DATE": "5352585194295564660", "WARN": "5336944168944047463"
+    "DATE": "5352585194295564660", "WARN": "5336944168944047463", "SETTINGS": "5420155432272438703",
+    "CHAT": "5337302974806922068", "MEMBER": "5420145051336485498", "ADD": "5420323438508155202",
+    "DELETE": "5422557736330106570", "GIFT": "5420396762189831222", "PC": "5336879280578138635",
+    "WEB": "5336972142066047577", "ARROW": "5420618897898381296", "LINK": "5420517437885943844"
 }
 
 cooldowns = {}
@@ -78,15 +81,38 @@ def get_settings():
         settings = {
             "force_join": True,
             "channels": [
-                {"name": "DXA Universe", "url": "https://t.me/dxa_universe", "username": "@dxa_universe"},
-                {"name": "Developer X Asik", "url": "https://t.me/developer_x_asik", "username": "@developer_x_asik"}
+                {"name": "DXA Universe", "url": "https://t.me/dxa_universe", "username": "@dxa_universe"}
             ],
             "admins": [],
             "otp_groups": [],
-            "otp_link": "https://t.me/dxaotpzone"
+            "otp_link": "https://t.me/dxaotpzone",
+            "brand_name": "DXA UNIVERSE",
+            "mask_text": "DXA",
+            "group_buttons": {}
         }
         write_json("settings.json", settings)
+    
+    # Schema Migration
+    updated = False
+    if "brand_name" not in settings:
+        settings["brand_name"] = "DXA UNIVERSE"
+        updated = True
+    if "mask_text" not in settings:
+        settings["mask_text"] = "DXA"
+        updated = True
+    if "group_buttons" not in settings:
+        settings["group_buttons"] = {}
+        updated = True
+    if updated:
+        write_json("settings.json", settings)
+        
     return settings
+
+def get_brand():
+    return get_settings().get("brand_name", "DXA UNIVERSE")
+
+def get_mask():
+    return get_settings().get("mask_text", "DXA")
 
 def is_admin(user_id):
     if user_id == ADMIN_ID: return True
@@ -107,7 +133,7 @@ def check_join(user_id):
 
 def show_force_join_msg(chat_id):
     settings = get_settings()
-    text = (f"{e('🚫', PREMIUM_EMOJIS['CLOSE'])} <b>ACCESS RESTRICTED</b> {e('🚫', PREMIUM_EMOJIS['CLOSE'])}\n"
+    text = (f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} <b>ACCESS RESTRICTED</b> {e('❌', PREMIUM_EMOJIS['CLOSE'])}\n"
             f"━━━━━━━━━━━━\n"
             f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>Join Our Official Channel</b>\n\n"
             f"{e('🔐', PREMIUM_EMOJIS['OTP_ID'])} To unlock full access to <b>This Bot</b>, You Must Join Our Channel First.\n"
@@ -117,7 +143,7 @@ def show_force_join_msg(chat_id):
     markup = types.InlineKeyboardMarkup()
     for c in settings.get("channels", []):
         markup.add(types.InlineKeyboardButton(f"Join {c['name']}", url=c['url']))
-    markup.add(types.InlineKeyboardButton("Joined ✅", callback_data="check_join"))
+    markup.add(types.InlineKeyboardButton(f"Joined {e('✅', PREMIUM_EMOJIS['DONE'])}", callback_data="check_join"))
     bot.send_message(chat_id, text, reply_markup=markup)
 
 def delete_last_menu(chat_id, user_id):
@@ -142,12 +168,12 @@ def show_services(chat_id, message_id=None, user_id=None):
     markup = types.InlineKeyboardMarkup()
     if not services:
         text = f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} No numbers available at the moment."
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
     else:
         text = f"{e('📱', PREMIUM_EMOJIS['NUMBER'])} <b>Select a Service:</b>"
         for s in services:
-            markup.add(types.InlineKeyboardButton(f"🔹 {s}", callback_data=f"sel_service:{s}"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
+            markup.add(types.InlineKeyboardButton(f"{e('🔹', PREMIUM_EMOJIS['DOT'])} {s}", callback_data=f"sel_service:{s}"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
 
     if message_id:
         try: bot.edit_message_text(text, chat_id, message_id, reply_markup=markup)
@@ -157,22 +183,23 @@ def show_services(chat_id, message_id=None, user_id=None):
         if user_id: last_menus[user_id] = sent.message_id
 
 def show_settings_panel(chat_id, message_id):
-    text = (f"{e('⚙️', PREMIUM_EMOJIS['NOTE'])} <b>BOT SETTINGS CENTER</b> {e('⚙️', PREMIUM_EMOJIS['NOTE'])}\n"
+    text = (f"{e('⚙️', PREMIUM_EMOJIS['SETTINGS'])} <b>BOT SETTINGS CENTER</b> {e('⚙️', PREMIUM_EMOJIS['SETTINGS'])}\n"
             f"━━━━━━━━━━━━━\n\n"
             f"Welcome to the bot configuration hub. Select a category below to manage your bot instance.")
     
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton("📢 Force Join System", callback_data="manage_force_join"))
-    markup.row(types.InlineKeyboardButton("👥 Admin Management", callback_data="manage_admins"))
-    markup.row(types.InlineKeyboardButton("💬 OTP Group System", callback_data="manage_otp_groups"))
-    markup.row(types.InlineKeyboardButton("🔗 Bot OTP Button Link", callback_data="manage_bot_otp_link"))
-    markup.row(types.InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_panel_back"))
+    markup.row(types.InlineKeyboardButton(f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} Force Join System", callback_data="manage_force_join"))
+    markup.row(types.InlineKeyboardButton(f"{e('👥', PREMIUM_EMOJIS['MEMBER'])} Admin Management", callback_data="manage_admins"))
+    markup.row(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['CHAT'])} OTP Group Management", callback_data="manage_otp_groups"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔗', PREMIUM_EMOJIS['PIN'])} Bot OTP Button Link", callback_data="manage_bot_otp_link"))
+    markup.row(types.InlineKeyboardButton(f"{e('✨', PREMIUM_EMOJIS['FIRE'])} Branding & Masking", callback_data="manage_branding"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back to Admin", callback_data="admin_panel_back"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
 def show_manage_force_join(chat_id, message_id):
     settings = get_settings()
-    status = "Active ✅" if settings.get("force_join") else "Disabled ❌"
+    status = f"Active {e('✅', PREMIUM_EMOJIS['DONE'])}" if settings.get("force_join") else f"Disabled {e('❌', PREMIUM_EMOJIS['CLOSE'])}"
     
     text = (f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>FORCE JOIN SYSTEM</b>\n"
             f"━━━━━━━━━━━━━\n\n"
@@ -187,16 +214,16 @@ def show_manage_force_join(chat_id, message_id):
     else:
         for i, c in enumerate(channels):
             text += f"  {i+1}. {c['name']} (<code>{c['username']}</code>)\n"
-            markup.row(types.InlineKeyboardButton(f"🗑 Delete {c['name']}", callback_data=f"del_chan:{i}"))
+            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete {c['name']}", callback_data=f"del_chan:{i}"))
     
     text += f"\n━━━━━━━━━━━━━"
     
-    btn_toggle = "OFF ❌" if settings.get("force_join") else "ON ✅"
+    btn_toggle = f"OFF {e('❌', PREMIUM_EMOJIS['CLOSE'])}" if settings.get("force_join") else f"ON {e('✅', PREMIUM_EMOJIS['DONE'])}"
     markup.row(types.InlineKeyboardButton(f"Toggle Force Join: {btn_toggle}", callback_data="toggle_force_join"))
-    markup.row(types.InlineKeyboardButton("➕ Add Channel", callback_data="add_channel"))
+    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Channel", callback_data="add_channel"))
     if channels:
-        markup.row(types.InlineKeyboardButton("🗑 Delete All Channels", callback_data="reset_channels"))
-    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete All Channels", callback_data="reset_channels"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -215,47 +242,87 @@ def show_manage_admins(chat_id, message_id):
     else:
         for a in admins:
             text += f"  • <code>{a}</code>\n"
-            markup.row(types.InlineKeyboardButton(f"🗑 Remove Admin {a}", callback_data=f"del_admin:{a}"))
+            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove Admin {a}", callback_data=f"del_admin:{a}"))
             
     text += f"\n━━━━━━━━━━━━━"
-    markup.row(types.InlineKeyboardButton("➕ Add Admin", callback_data="add_admin"))
+    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Admin", callback_data="add_admin"))
     if admins:
-        markup.row(types.InlineKeyboardButton("🗑 Remove All Co-Admins", callback_data="reset_admins"))
-    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove All Co-Admins", callback_data="reset_admins"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
 def show_manage_otp_groups(chat_id, message_id):
     settings = get_settings()
-    text = (f"{e('💬', PREMIUM_EMOJIS['SUPPORT'])} <b>OTP GROUP SYSTEM</b>\n"
+    text = (f"{e('💬', PREMIUM_EMOJIS['CHAT'])} <b>OTP GROUP SYSTEM</b>\n"
             f"━━━━━━━━━━━━━\n\n"
             f"<b>Forwarding Groups:</b>\n")
     
     groups = settings.get("otp_groups", [])
+    group_buttons = settings.get("group_buttons", {})
     markup = types.InlineKeyboardMarkup()
     
     if not groups:
-        text += "  • No groups added.\n"
+        text += f"  {e('❌', PREMIUM_EMOJIS['CLOSE'])} No groups added.\n"
     else:
         for g in groups:
-            text += f"  • <code>{g}</code>\n"
-            markup.row(types.InlineKeyboardButton(f"🗑 Remove Group {g}", callback_data=f"del_otp_grp:{g}"))
+            btn_count = len(group_buttons.get(str(g), []))
+            text += f"  {e('🔹', PREMIUM_EMOJIS['DOT'])} <code>{g}</code> ({btn_count} Buttons)\n"
+            markup.row(types.InlineKeyboardButton(f"{e('⚙️', PREMIUM_EMOJIS['SETTINGS'])} Buttons for {g}", callback_data=f"setup_grp_btns:{g}"),
+                       types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove", callback_data=f"del_otp_grp:{g}"))
             
-    text += (f"\n<b>OTP Msg Extra Buttons:</b>\n")
+    text += (f"\n<b>Global OTP Buttons:</b>\n")
     buttons = settings.get("otp_message_buttons", [])
     if not buttons:
-        text += "  • No extra buttons configured.\n"
+        text += f"  {e('❌', PREMIUM_EMOJIS['CLOSE'])} No global buttons.\n"
     else:
         for i, b in enumerate(buttons):
-            text += f"  {i+1}. {b['text']} (🔗)\n"
-            markup.row(types.InlineKeyboardButton(f"🗑 Delete Btn: {b['text']}", callback_data=f"del_otp_btn:{i}"))
-
+            text += f"  {i+1}. {b['text']} ({e('🔗', PREMIUM_EMOJIS['PIN'])})\n"
+            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete Global: {b['text']}", callback_data=f"del_otp_btn:{i}"))
+ 
     text += f"\n━━━━━━━━━━━━━"
-    markup.row(types.InlineKeyboardButton("➕ Add Forwarding Group", callback_data="add_otp_group"))
-    markup.row(types.InlineKeyboardButton("➕ Add OTP Inline Button", callback_data="add_otp_msg_btn"))
+    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Forwarding Group", callback_data="add_otp_group"))
+    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Global Button", callback_data="add_otp_msg_btn"))
     if groups or buttons:
-        markup.row(types.InlineKeyboardButton("🗑 Reset OTP System", callback_data="reset_otp_groups"))
-    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Reset OTP System", callback_data="reset_otp_groups"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+    
+    bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
+
+def show_group_buttons_settings(chat_id, message_id, group_id):
+    settings = get_settings()
+    group_buttons = settings.get("group_buttons", {}).get(str(group_id), [])
+    
+    text = (f"{e('💬', PREMIUM_EMOJIS['CHAT'])} <b>BUTTONS FOR GROUP:</b> <code>{group_id}</code>\n"
+            f"━━━━━━━━━━━━━\n\n"
+            f"These buttons only appear when OTP is forwarded to this specific group.\n\n")
+    
+    markup = types.InlineKeyboardMarkup()
+    if not group_buttons:
+        text += f"  {e('❌', PREMIUM_EMOJIS['CLOSE'])} No group-specific buttons.\n"
+    else:
+        for i, btn in enumerate(group_buttons):
+            text += f"  {i+1}. {btn['text']} ({e('🔗', PREMIUM_EMOJIS['PIN'])})\n"
+            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete: {btn['text']}", callback_data=f"del_grp_spec_btn:{group_id}:{i}"))
+            
+    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Button", callback_data=f"add_grp_spec_btn:{group_id}"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_otp_groups"))
+    
+    bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
+
+def show_branding_settings(chat_id, message_id):
+    brand = get_brand()
+    mask = get_mask()
+    text = (f"{e('✨', PREMIUM_EMOJIS['FIRE'])} <b>BRANDING & MASKING</b>\n"
+            f"━━━━━━━━━━━━━\n\n"
+            f"Current Brand Name: <b>{brand}</b>\n"
+            f"Current Mask Text: <b>{mask}</b> (Used like 123{mask}4567)\n\n"
+            f"━━━━━━━━━━━━━")
+    
+    markup = types.InlineKeyboardMarkup()
+    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Brand Name", callback_data="set_brand_name"))
+    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Mask Text", callback_data="set_mask_text"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -264,13 +331,13 @@ def show_bot_keypad_settings(chat_id, message_id):
     link = settings.get("otp_link", "https://t.me/dxaotpzone")
     text = (f"{e('🔗', PREMIUM_EMOJIS['PIN'])} <b>BOT OTP BUTTON LINK</b>\n"
             f"━━━━━━━━━━━━━\n\n"
-            f"This link is used for the '💬 OTP Group' button displayed after a user allocates numbers.\n\n"
+            f"This link is used for the '{e('💬', PREMIUM_EMOJIS['CHAT'])} OTP Group' button displayed after a user allocates numbers.\n\n"
             f"Current Link: <b>{link}</b>\n\n"
             f"━━━━━━━━━━━━━")
     
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton("✏️ Edit Link", callback_data="set_otp_link"))
-    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Link", callback_data="set_otp_link"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -282,13 +349,49 @@ def process_otp_btn_add(msg):
             if "otp_message_buttons" not in settings: settings["otp_message_buttons"] = []
             settings["otp_message_buttons"].append({"text": parts[0], "url": parts[1]})
             write_json("settings.json", settings)
-            bot.send_message(msg.chat.id, "✅ Custom OTP button added!")
+            bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Custom OTP button added!")
     
     time.sleep(1)
     show_manage_otp_groups(msg.chat.id, call_back_msg_id(msg.chat.id))
 
+def process_brand_name_set(msg):
+    if msg.text:
+        new_brand = msg.text.strip()
+        settings = get_settings()
+        settings["brand_name"] = new_brand
+        write_json("settings.json", settings)
+        bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Brand name updated to <b>{new_brand}</b>!")
+    
+    time.sleep(1)
+    show_branding_settings(msg.chat.id, last_menus.get(msg.chat.id))
+
+def process_mask_text_set(msg):
+    if msg.text:
+        new_mask = msg.text.strip()
+        settings = get_settings()
+        settings["mask_text"] = new_mask
+        write_json("settings.json", settings)
+        bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Mask text updated to <b>{new_mask}</b>!")
+    
+    time.sleep(1)
+    show_branding_settings(msg.chat.id, last_menus.get(msg.chat.id))
+
+def process_grp_spec_btn_add(msg, group_id):
+    if msg.text and "|" in msg.text:
+        parts = [p.strip() for p in msg.text.split("|")]
+        if len(parts) == 2:
+            settings = get_settings()
+            if "group_buttons" not in settings: settings["group_buttons"] = {}
+            gid_str = str(group_id)
+            if gid_str not in settings["group_buttons"]: settings["group_buttons"][gid_str] = []
+            settings["group_buttons"][gid_str].append({"text": parts[0], "url": parts[1]})
+            write_json("settings.json", settings)
+            bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Button added for group {group_id}!")
+    
+    time.sleep(1)
+    show_group_buttons_settings(msg.chat.id, last_menus.get(msg.chat.id), group_id)
+
 def call_back_msg_id(chat_id):
-    # Dummy helper to get last menu id or just send new
     return last_menus.get(chat_id)
 
 def process_channel_add(msg):
@@ -300,7 +403,8 @@ def process_channel_add(msg):
                 settings = get_settings()
                 settings["channels"].append({"name": name, "url": url, "username": username})
                 write_json("settings.json", settings)
-                bot.send_message(msg.chat.id, "✅ Channel added successfully!")
+                bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Channel added successfully!")
+        except: pass
     
     time.sleep(1)
     show_manage_force_join(msg.chat.id, last_menus.get(msg.chat.id))
@@ -312,7 +416,7 @@ def process_admin_add(msg):
         if new_id not in settings.get("admins", []):
             settings["admins"].append(new_id)
             write_json("settings.json", settings)
-            bot.send_message(msg.chat.id, f"✅ Admin ID {new_id} added successfully!")
+            bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Admin ID {new_id} added successfully!")
     
     time.sleep(1)
     show_manage_admins(msg.chat.id, last_menus.get(msg.chat.id))
@@ -324,7 +428,7 @@ def process_otp_group_add(msg):
         if new_id not in settings.get("otp_groups", []):
             settings["otp_groups"].append(new_id)
             write_json("settings.json", settings)
-            bot.send_message(msg.chat.id, f"✅ OTP Group {new_id} added successfully!")
+            bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} OTP Group {new_id} added successfully!")
     
     time.sleep(1)
     show_manage_otp_groups(msg.chat.id, last_menus.get(msg.chat.id))
@@ -335,7 +439,7 @@ def process_otp_link_set(msg):
         settings = get_settings()
         settings["otp_link"] = new_url
         write_json("settings.json", settings)
-        bot.send_message(msg.chat.id, f"✅ OTP Group link updated!")
+        bot.send_message(msg.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} OTP Group link updated!")
     
     time.sleep(1)
     show_bot_keypad_settings(msg.chat.id, last_menus.get(msg.chat.id))
@@ -366,13 +470,13 @@ def show_admin_panel(chat_id, message_id=None, user_id=None):
             f"━━━━━━━━━━━━━")
 
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton("📤 Upload Numbers", callback_data="admin_upload"),
-               types.InlineKeyboardButton("🗑 Delete Files", callback_data="admin_delete_files"))
-    markup.row(types.InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-               types.InlineKeyboardButton("⚙️ Settings", callback_data="admin_settings"))
-    markup.row(types.InlineKeyboardButton("✅ Used Numbers", callback_data="view_used"),
-               types.InlineKeyboardButton("🚀 Unused Numbers", callback_data="view_unused"))
-    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
+    markup.row(types.InlineKeyboardButton(f"{e('📤', PREMIUM_EMOJIS['UPLOAD'])} Upload Numbers", callback_data="admin_upload"),
+               types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete Files", callback_data="admin_delete_files"))
+    markup.row(types.InlineKeyboardButton(f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} Broadcast", callback_data="admin_broadcast"),
+               types.InlineKeyboardButton(f"{e('⚙️', PREMIUM_EMOJIS['SETTINGS'])} Settings", callback_data="admin_settings"))
+    markup.row(types.InlineKeyboardButton(f"{e('✅', PREMIUM_EMOJIS['DONE'])} Used Numbers", callback_data="view_used"),
+               types.InlineKeyboardButton(f"{e('🚀', PREMIUM_EMOJIS['ROCKET'])} Unused Numbers", callback_data="view_unused"))
+    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
 
     if message_id:
         try: bot.edit_message_text(text, chat_id, message_id, reply_markup=markup)
@@ -394,12 +498,17 @@ def start(msg):
         show_force_join_msg(msg.chat.id)
         return
 
-    text = (f"{e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA NUMBER BOT {e('🔥', PREMIUM_EMOJIS['FIRE'])}\n"
+    brand = get_brand()
+    text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA NUMBER BOT {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
             f"━━━━━━━━━━━\n"
-            f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>! Welcome To DXA UNIVERSE.\n\n"
-            f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap Get Number to start!\n"
+            f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>! Welcome to DXA UNIVERSE\n"
+            f"{e('💬', PREMIUM_EMOJIS['CHAT'])} System Ready to Generate Numbers\n"
             f"━━━━━━━━━━━\n"
-            f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE")
+            f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap {e('➤', PREMIUM_EMOJIS['ARROW'])} GET NUMBER\n"
+            f"{e('➤', PREMIUM_EMOJIS['ARROW'])} To Start Service\n"
+            f"━━━━━━━━━━━\n"
+            f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE\n"
+            f"━━━━━━━━━━━")
     bot.send_message(msg.chat.id, text, reply_markup=get_main_keyboard(user_id))
 
 @bot.message_handler(func=lambda m: True)
@@ -420,10 +529,13 @@ def handle_msg(msg):
         try: bot.delete_message(chat_id, msg.message_id) 
         except: pass
         delete_last_menu(chat_id, user_id)
-        text = (f"{e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA SUPPORT CENTER {e('🔥', PREMIUM_EMOJIS['FIRE'])}\n"
+        text = (f"═《 {e('🔥', PREMIUM_EMOJIS['FIRE'])} DXA SUPPORT {e('🔥', PREMIUM_EMOJIS['FIRE'])} 》═\n"
                 f"━━━━━━━━━━━\n"
-                f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>! Tell Me How Can I Help You.\n\n"
-                f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap Support Button to Contact The Admin!\n"
+                f"{e('👋', PREMIUM_EMOJIS['HELLO'])} Hello, <b>{msg.from_user.first_name}</b>!\n"
+                f"{e('💬', PREMIUM_EMOJIS['CHAT'])} Welcome to DXA Support Panel\n"
+                f"━━━━━━━━━━━\n"
+                f"{e('📌', PREMIUM_EMOJIS['PIN'])} Tap Support Button\n"
+                f"{e('➤', PREMIUM_EMOJIS['ARROW'])} To Contact The Admin!\n"
                 f"━━━━━━━━━━━\n"
                 f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE")
         markup = types.InlineKeyboardMarkup()
@@ -445,24 +557,23 @@ def callback(call):
     user_id = call.from_user.id
     data = call.data
 
-    # Strict real-time Force Join Check
     if data != "check_join" and not check_join(user_id):
         try: bot.delete_message(chat_id, call.message.message_id)
         except: pass
         show_force_join_msg(chat_id)
         return
 
-    # Admin Panel Guards
     ADMIN_ACTIONS = [
         "manage_force_join", "manage_admins", "manage_otp_groups", "manage_bot_otp_link", 
         "admin_settings", "add_admin", "reset_admins", "add_otp_group", "reset_otp_groups",
         "set_otp_link", "toggle_force_join", "reset_channels", "add_channel", "admin_upload",
         "admin_broadcast", "admin_delete_files", "admin_panel_back", "view_used", "view_unused",
-        "add_otp_msg_btn", "reset_otp_groups"
+        "add_otp_msg_btn", "manage_branding", "set_brand_name", "set_mask_text", "setup_grp_btns:",
+        "add_grp_spec_btn:", "del_grp_spec_btn:"
     ]
     
     is_admin_action = any(data.startswith(act) for act in ADMIN_ACTIONS) or \
-                      any(data.startswith(pref) for pref in ["del_chan:", "del_admin:", "del_otp_grp:", "del_otp_btn:", "del_file:"])
+                      any(data.startswith(pref) for pref in ["del_chan:", "del_admin:", "del_otp_grp:", "del_otp_btn:", "del_file:", "setup_grp_btns:", "add_grp_spec_btn:", "del_grp_spec_btn:"])
     
     if is_admin_action and not is_admin(user_id):
         bot.answer_callback_query(call.id, "❌ Limited to Admins only!", show_alert=True)
@@ -474,7 +585,7 @@ def callback(call):
             except: pass
             start(call.message)
         else:
-            bot.answer_callback_query(call.id, "❌ Join all channels first!", show_alert=True)
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Join all channels first!", show_alert=True)
             
     elif data == "manage_force_join":
         show_manage_force_join(chat_id, call.message.message_id)
@@ -487,6 +598,53 @@ def callback(call):
 
     elif data == "manage_bot_otp_link":
         show_bot_keypad_settings(chat_id, call.message.message_id)
+
+    elif data == "manage_branding":
+        show_branding_settings(chat_id, call.message.message_id)
+
+    elif data == "set_brand_name":
+        text = (f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} <b>EDIT BRAND NAME</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Send the new brand name (e.g., DXA UNIVERSE):")
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_branding"))
+        sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        bot.register_next_step_handler(sent, process_brand_name_set)
+
+    elif data == "set_mask_text":
+        text = (f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} <b>EDIT MASK TEXT</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Send the new mask string (e.g., DXA):")
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_branding"))
+        sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
+        bot.register_next_step_handler(sent, process_mask_text_set)
+
+    elif data.startswith("setup_grp_btns:"):
+        gid = data.split(":")[1]
+        show_group_buttons_settings(chat_id, call.message.message_id, gid)
+
+    elif data.startswith("add_grp_spec_btn:"):
+        gid = data.split(":")[1]
+        text = (f"{e('➕', PREMIUM_EMOJIS['ADD'])} <b>ADD BUTTON FOR {gid}</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Format: <code>Button Name | https://link.com</code>")
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data=f"setup_grp_btns:{gid}"))
+        sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup, parse_mode='HTML')
+        bot.register_next_step_handler(sent, lambda m: process_grp_spec_btn_add(m, gid))
+
+    elif data.startswith("del_grp_spec_btn:"):
+        parts = data.split(":")
+        gid, idx = parts[1], int(parts[2])
+        settings = get_settings()
+        if str(gid) in settings.get("group_buttons", {}):
+            btns = settings["group_buttons"][str(gid)]
+            if 0 <= idx < len(btns):
+                btns.pop(idx)
+                write_json("settings.json", settings)
+                bot.answer_callback_query(call.id, "Button Removed")
+        show_group_buttons_settings(chat_id, call.message.message_id, gid)
 
     elif data.startswith("del_chan:"):
         idx = int(data.split(":")[1])
@@ -525,9 +683,12 @@ def callback(call):
         show_manage_otp_groups(chat_id, call.message.message_id)
 
     elif data == "add_otp_msg_btn":
-        text = "➕ <b>ADD OTP BUTTON</b>\n━━━━━━━━━━━━━\nSend button details as:\n<code>Button Name | https://link.com</code>"
+        text = (f"{e('➕', PREMIUM_EMOJIS['ADD'])} <b>ADD OTP BUTTON</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Send button details as:\n"
+                f"<code>Button Name | https://link.com</code>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="manage_otp_groups"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_otp_groups"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup, parse_mode='HTML')
         bot.register_next_step_handler(sent, process_otp_btn_add)
 
@@ -535,9 +696,11 @@ def callback(call):
         show_settings_panel(chat_id, call.message.message_id)
         
     elif data == "add_admin":
-        text = "➕ <b>ADD NEW ADMIN</b>\n━━━━━━━━━━━━━\nPlease send the Telegram User ID of the new admin:"
+        text = (f"{e('➕', PREMIUM_EMOJIS['ADD'])} <b>ADD NEW ADMIN</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Please send the Telegram User ID of the new admin:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_admin_add)
 
@@ -545,13 +708,15 @@ def callback(call):
         settings = get_settings()
         settings["admins"] = []
         write_json("settings.json", settings)
-        bot.answer_callback_query(call.id, "Admins list cleared! (except Master)")
+        bot.answer_callback_query(call.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Admins list cleared! (except Master)")
         show_settings_panel(chat_id, call.message.message_id)
 
     elif data == "add_otp_group":
-        text = "➕ <b>ADD OTP GROUP</b>\n━━━━━━━━━━━━━\nPlease send the Group/Channel ID where OTPs should be forwarded:"
+        text = (f"{e('➕', PREMIUM_EMOJIS['ADD'])} <b>ADD OTP GROUP</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Please send the Group/Channel ID where OTPs should be forwarded:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_otp_group_add)
 
@@ -559,13 +724,15 @@ def callback(call):
         settings = get_settings()
         settings["otp_groups"] = []
         write_json("settings.json", settings)
-        bot.answer_callback_query(call.id, "OTP Groups list cleared!")
+        bot.answer_callback_query(call.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} OTP Groups list cleared!")
         show_settings_panel(chat_id, call.message.message_id)
 
     elif data == "set_otp_link":
-        text = "🔗 <b>SET OTP GROUP LINK</b>\n━━━━━━━━━━━━━\nPlease send the invitation URL for your OTP group:"
+        text = (f"{e('🔗', PREMIUM_EMOJIS['PIN'])} <b>SET OTP GROUP LINK</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Please send the invitation URL for your OTP group:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_otp_link_set)
 
@@ -573,20 +740,25 @@ def callback(call):
         settings = get_settings()
         settings["force_join"] = not settings.get("force_join")
         write_json("settings.json", settings)
-        bot.answer_callback_query(call.id, "Settings Updated!")
+        bot.answer_callback_query(call.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Settings Updated!")
         show_settings_panel(chat_id, call.message.message_id)
 
     elif data == "reset_channels":
         settings = get_settings()
         settings["channels"] = []
         write_json("settings.json", settings)
-        bot.answer_callback_query(call.id, "Channels list cleared!")
+        bot.answer_callback_query(call.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Channels list cleared!")
         show_settings_panel(chat_id, call.message.message_id)
 
     elif data == "add_channel":
-        text = "➕ <b>ADD NEW CHANNEL</b>\n━━━━━━━━━━━━━\nPlease send channel details in following format:\n\n<code>Channel Name | Public URL | @Username</code>\n\nExample:\n<code>My Channel | https://t.me/mychan | @mychan</code>"
+        text = (f"{e('➕', PREMIUM_EMOJIS['ADD'])} <b>ADD NEW CHANNEL</b>\n"
+                f"━━━━━━━━━━━━━\n"
+                f"Please send channel details in following format:\n\n"
+                f"<code>Channel Name | Public URL | @Username</code>\n\n"
+                f"Example:\n"
+                f"<code>My Channel | https://t.me/mychan | @mychan</code>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_channel_add)
 
@@ -600,19 +772,19 @@ def callback(call):
         available = [n for n in nums if not n.get('used') and n.get('service') == service]
         
         if not available:
-            bot.answer_callback_query(call.id, f"❌ Sorry, {service} is currently out of stock!", show_alert=True)
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Sorry, {service} is currently out of stock!", show_alert=True)
             return
 
         countries = sorted(list(set([n['country'] for n in available if n.get('country')])))
         
         if not countries:
-            bot.answer_callback_query(call.id, "❌ No regions found for this service.", show_alert=True)
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} No regions found for this service.", show_alert=True)
             return
 
         markup = types.InlineKeyboardMarkup()
         for country in countries:
             markup.add(types.InlineKeyboardButton(f"📍 {country}", callback_data=f"sel_country:{service}:{country}"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_to_services"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="back_to_services"))
         
         text = f"{e('📍', PREMIUM_EMOJIS['PIN'])} <b>Select Country for {service}:</b>"
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
@@ -627,7 +799,7 @@ def callback(call):
         diff = (now - last_time) / 1000
         
         if diff < 10:
-            bot.answer_callback_query(call.id, f"❌ Please wait {int(10-diff)} seconds!", show_alert=True)
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Please wait {int(10-diff)} seconds!", show_alert=True)
             return
 
         parts = data.split(":")
@@ -636,7 +808,7 @@ def callback(call):
         available = [n for n in all_nums if not n.get('used') and n.get('service') == service and n.get('country') == country]
         
         if len(available) < 3:
-            bot.answer_callback_query(call.id, "❌ Not enough numbers available.", show_alert=True)
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Not enough numbers available.", show_alert=True)
             return
             
         import random
@@ -658,20 +830,26 @@ def callback(call):
             if not num.startswith("+"): num = "+" + num
             formatted.append(f"{icons[i]} <code>{num}</code>")
 
-        text = (f"{e('✅', PREMIUM_EMOJIS['DONE'])} <b>NUMBERS ALLOCATED</b>\n"
-                f"━━━━━━━━━━━━━━\n"
-                f" {e('🔹', PREMIUM_EMOJIS['DOT'])} Service: <b>{service}</b>\n"
-                f" {e('📍', PREMIUM_EMOJIS['PIN'])} Country: <b>{country}</b>\n"
-                f"━━━━━━━━━━━━━━\n"
+        s_key = service.upper().replace(' ', '')
+        prem = APP_EMOJIS.get(s_key)
+        icon = e(prem[0], prem[1]) if prem else e("🖥", PREMIUM_EMOJIS['SUPPORT'])
+
+        text = (f"━━━━━━━━━━━\n"
+                f"《 {e('✅', PREMIUM_EMOJIS['DONE'])} NUMBERS ALLOCATED 》\n"
+                f"━━━━━━━━━━━\n"
+                f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Service {icon} {service}\n"
+                f"{e('📍', PREMIUM_EMOJIS['PIN'])} Country {e('🌐', PREMIUM_EMOJIS['WEB'])} {country}\n"
+                f"━━━━━━━━━━━\n"
                 f"{chr(10).join(formatted)}\n"
-                f"━━━━━━━━━━━━━━\n"
-                f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE")
+                f"━━━━━━━━━━━\n"
+                f"{e('😒', PREMIUM_EMOJIS['DXA'])} POWERED BY DXA UNIVERSE\n"
+                f"━━━━━━━━━━━")
         
         markup = types.InlineKeyboardMarkup()
         otp_btn_link = get_settings().get("otp_link", "https://t.me/dxaotpzone")
         markup.row(types.InlineKeyboardButton("🔄 Change Number", callback_data=f"sel_country:{service}:{country}"))
-        markup.row(types.InlineKeyboardButton("💬 OTP Group", url=otp_btn_link))
-        markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="back_to_services"))
+        markup.row(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['CHAT'])} OTP Group", url=otp_btn_link))
+        markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="back_to_services"))
         
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         except: pass
@@ -679,26 +857,26 @@ def callback(call):
     elif data == "admin_upload":
         text = f"{e('📤', PREMIUM_EMOJIS['UPLOAD'])} <b>UPLOAD NUMBERS</b>\n━━━━━━━━━━━━━\nPlease send the .txt file containing numbers."
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, handle_admin_upload_file)
 
     elif data == "admin_broadcast":
         text = f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend message to broadcast:"
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_broadcast)
 
     elif data == "admin_delete_files":
         files = read_json("files.json")
         if not files:
-            bot.answer_callback_query(call.id, "No files found.")
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} No files found.")
             return
         markup = types.InlineKeyboardMarkup()
         for f in files:
-            markup.add(types.InlineKeyboardButton(f"❌ {f['fileName']} ({f['service']})", callback_data=f"del_file:{f['id']}"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
+            markup.add(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} {f['fileName']} ({f['service']})", callback_data=f"del_file:{f['id']}"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
         try: bot.edit_message_text("Select a file to delete:", chat_id, call.message.message_id, reply_markup=markup)
         except: pass
 
@@ -710,16 +888,14 @@ def callback(call):
         nums = [n for n in nums if n.get('fileId') != fid]
         write_json("files.json", files)
         write_json("numbers.json", nums)
-        bot.answer_callback_query(call.id, "✅ Deleted!")
+        bot.answer_callback_query(call.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Deleted!")
         show_admin_panel(chat_id, call.message.message_id)
 
     elif data == "view_used" or data == "view_unused":
         is_used = "used" in data
         all_nums = read_json("numbers.json")
-        # Robust filtering: treat missing 'used' as False (unused)
         nums = [n for n in all_nums if bool(n.get('used', False)) == is_used]
         
-        # Calculate Service Breakdown
         service_counts = {}
         for n in nums:
             s_name = n.get('service', 'Other')
@@ -731,11 +907,9 @@ def callback(call):
         
         if not breakdown_text: breakdown_text = "  • No numbers found.\n"
 
-        # Show actual numbers (last 10)
         recent_data = ""
         if nums:
             recent_data = "\n<b>Recent Numbers:</b>\n"
-            # Reverse to show newest to oldest in the view
             for n in list(reversed(nums))[:10]:
                 recent_data += f"  • <code>{n.get('number')}</code> ({n.get('service')})\n"
 
@@ -752,8 +926,8 @@ def callback(call):
                 f"━━━━━━━━━━━━━")
                 
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"📥 Download {label.capitalize()} (.txt)", callback_data=f"download_{label.lower()}"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton(f"{e('📥', PREMIUM_EMOJIS['FILE'])} Download {label.capitalize()} (.txt)", callback_data=f"download_{label.lower()}"))
+        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         except: pass
 
@@ -761,7 +935,7 @@ def callback(call):
         is_used = "used" in data
         nums = [n['number'] for n in read_json("numbers.json") if n.get('used') == is_used]
         if not nums:
-            bot.answer_callback_query(call.id, "Empty list.")
+            bot.answer_callback_query(call.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Empty list.")
             return
         import io
         buf = io.BytesIO("\n".join(nums).encode())
@@ -776,7 +950,7 @@ def callback(call):
 def handle_admin_upload_file(msg):
     if not is_admin(msg.from_user.id): return
     if not msg.document or not msg.document.file_name.endswith('.txt'):
-        bot.send_message(msg.chat.id, "❌ Please send a valid .txt file.")
+        bot.send_message(msg.chat.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Please send a valid .txt file.")
         return
     
     s_msg = bot.send_message(msg.chat.id, f"{e('🔹', PREMIUM_EMOJIS['DOT'])} Enter Service Name:", parse_mode='HTML')
@@ -818,10 +992,9 @@ def process_country_name(m, doc, service_name):
         bot.delete_message(m.chat.id, wait_msg.message_id)
         bot.send_message(m.chat.id, f"{e('✅', PREMIUM_EMOJIS['DONE'])} Success! {len(lines)} numbers added.")
     except Exception as ex:
-        bot.send_message(m.chat.id, f"❌ Error: {str(ex)}")
+        bot.send_message(m.chat.id, f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} Error: {str(ex)}")
 
 def process_broadcast(msg):
-    # Check if user canceled by clicking back or command
     if msg.text and (msg.text.startswith('/') or msg.text in ["📱 Get Number", "🛠 Support", "👑 Admin Panel"]):
         return
 
@@ -849,6 +1022,7 @@ def fetch_otps():
             res = requests.get(f"{OTP_API_URL}?token={OTP_API_TOKEN}&records=50")
             if res.status_code == 200:
                 data = res.json()
+                settings = get_settings()
                 nums_data = read_json("numbers.json")
                 for rec in data:
                     if len(rec) < 4: continue
@@ -862,65 +1036,69 @@ def fetch_otps():
                         processed_messages.remove(next(it))
                     
                     norm_api = normalize_num(full_num)
-                    match = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
                     
+                    otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
+                    if otp_match:
+                        code = otp_match.group(0)
+                        serv_key = str(serv).upper().replace(" ", "")
+                        
+                        premium = APP_EMOJIS.get(serv_key)
+                        if premium:
+                            icon = e(premium[0], premium[1])
+                        else:
+                            icon = e("🖥", PREMIUM_EMOJIS['SUPPORT'])
+                        
+                norm_api = normalize_num(num_api)
+                otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
+                if otp_match:
+                    code = otp_match.group(0)
+                    serv_key = str(serv).upper().replace(" ", "")
+                    
+                    premium = APP_EMOJIS.get(serv_key)
+                    icon = e(premium[0], premium[1]) if premium else e("🖥", PREMIUM_EMOJIS['PC'])
+                    
+                    mask = get_mask()
+                    masked_num = f"{norm_api[:3]}{mask}{norm_api[-4:]}" if len(norm_api) >= 7 else norm_api
+                    
+                    group_body = f"{icon} <b>{serv}</b> <code>{masked_num}</code>"
+
+                    def get_markup_local(specific_buttons=None):
+                        m_obj = {
+                            "inline_keyboard": [
+                                [{"text": f"📋 {code}", "copy_text": {"text": code}}]
+                            ]
+                        }
+                        btns = specific_buttons if specific_buttons is not None else settings.get("otp_message_buttons", [])
+                        for btn in btns:
+                            m_obj["inline_keyboard"].append([{"text": btn["text"], "url": btn["url"]}])
+                        return json.dumps(m_obj)
+
+                    # 1. Forward to Groups
+                    group_buttons = settings.get("group_buttons", {})
+                    for g_id in settings.get("otp_groups", []):
+                        try:
+                            target_id = int(g_id) if str(g_id).replace('-', '').isdigit() else g_id
+                            spec_btns = group_buttons.get(str(g_id))
+                            bot.send_message(target_id, group_body, reply_markup=get_markup_local(spec_btns))
+                        except Exception as e_f:
+                            print(f"[OTP] Group {g_id} forward failed: {str(e_f)}")
+
+                    # 2. Check for User Match
+                    match = next((n for n in nums_data if n.get('used') and (normalize_num(n['number']) == norm_api or normalize_num(n['number']).endswith(norm_api) or norm_api.endswith(normalize_num(n['number'])))), None)
                     if match:
                         iso_ts = tstamp.replace(" ", "T") if " " in tstamp else tstamp
                         try:
                             msg_time = datetime.fromisoformat(iso_ts).timestamp() * 1000
-                            # Reject if older than assigned time minus buffer
-                            if msg_time < (match.get('assignedAt', 0) - 10000):
-                                processed_messages.add(msg_id)
-                                continue
+                            if msg_time >= (match.get('assignedAt', 0) - 86400000):
+                                user_body = f"{e('🚫', PREMIUM_EMOJIS['CLOSE'])} <b>{serv}</b>  <code>{norm_api}</code>"
+                                bot.send_message(match['assignedTo'], user_body, reply_markup=get_markup_local())
                         except: pass
 
-                        otp_match = re.search(r'\d{3}[- ]\d{3}', content) or re.search(r'\d{4,8}', content)
-                        if otp_match:
-                            code = otp_match.group(0)
-                            serv_key = str(serv).upper().replace(" ", "")
-                            
-                            premium = APP_EMOJIS.get(serv_key)
-                            if premium:
-                                icon = e(premium[0], premium[1])
-                            else:
-                                icon = e("🖥", PREMIUM_EMOJIS['SUPPORT'])
-                            
-                            body = f"{icon} <b>{serv}</b>  <code>{norm_api}</code>"
-                            masked_num = f"{norm_api[:3]}DXA{norm_api[-4:]}" if len(norm_api) >= 7 else norm_api
-                            group_body = f"{icon} <b>{serv}</b>  <code>{masked_num}</code>"
-
-                            markup_obj = {
-                                "inline_keyboard": [
-                                    [{
-                                        "text": f"📋 {code}",
-                                        "copy_text": {"text": code}
-                                    }]
-                                ]
-                            }
-                            # Add custom buttons from settings
-                            settings = get_settings()
-                            for btn in settings.get("otp_message_buttons", []):
-                                markup_obj["inline_keyboard"].append([{"text": btn["text"], "url": btn["url"]}])
-                            
-                            markup_json = json.dumps(markup_obj)
-                            bot.send_message(match['assignedTo'], body, reply_markup=markup_json)
-                            
-                            # Forward to OTP Groups
-                            for g_id in settings.get("otp_groups", []):
-                                try:
-                                    # Convert to int if it's a numeric string (handles negative IDs)
-                                    target_id = g_id
-                                    if str(g_id).replace('-', '').isdigit():
-                                        target_id = int(g_id)
-                                    bot.send_message(target_id, group_body, reply_markup=markup_json)
-                                except Exception as e_forward:
-                                    print(f"[OTP] Forward to {g_id} failed: {str(e_forward)}")
-                                
-                            processed_messages.add(msg_id)
+                processed_messages.add(msg_id)
             time.sleep(5)
-        except:
+        except Exception as e_glob:
+            print(f"[OTP] Fetch error: {str(e_glob)}")
             time.sleep(10)
-
 if __name__ == "__main__":
     threading.Thread(target=fetch_otps, daemon=True).start()
     print("Bot is running...")

@@ -94,7 +94,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
-                DXA Number Bot
+                {stats?.settings?.brand_name || 'DXA Number Bot'}
               </h1>
               <p className="text-white/40 font-mono text-sm mt-1 flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -133,32 +133,36 @@ export default function App() {
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
               <StatCard 
-                icon={<Users className="text-blue-400" />}
+                icon={<span className="text-2xl">🫂</span>}
                 label="Total Users"
                 value={stats?.users || 0}
                 subValue="Actively using bot"
                 variant={item}
+                color="blue"
               />
               <StatCard 
-                icon={<Hash className="text-purple-400" />}
+                icon={<span className="text-2xl">🔢</span>}
                 label="Total Numbers"
                 value={stats?.totalNumbers || 0}
                 subValue="Numbers in system"
                 variant={item}
+                color="purple"
               />
               <StatCard 
-                icon={<CheckCircle className="text-emerald-400" />}
+                icon={<span className="text-2xl">✅</span>}
                 label="Available"
                 value={stats?.availableNumbers || 0}
                 subValue={`${Math.round((stats?.availableNumbers || 0) / (stats?.totalNumbers || 1) * 100)}% Stock`}
                 variant={item}
+                color="emerald"
               />
               <StatCard 
-                icon={<FileText className="text-orange-400" />}
+                icon={<span className="text-2xl">📁</span>}
                 label="Files Processed"
                 value={stats?.files || 0}
                 subValue="Number sets uploaded"
                 variant={item}
+                color="orange"
               />
             </motion.div>
 
@@ -283,6 +287,51 @@ export default function App() {
 
               <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
                 <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Activity size={24} className="text-blue-500" />
+                  Appearance & Branding
+                </h3>
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-white/40 text-xs font-mono block mb-2 uppercase tracking-widest">Brand Name</span>
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl font-bold text-blue-400">
+                      {stats?.settings?.brand_name || "DXA UNIVERSE"}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-white/40 text-xs font-mono block mb-2 uppercase tracking-widest">Number Mask Text</span>
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl font-mono text-sm text-blue-400">
+                      {stats?.settings?.mask_text || "DXA"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <Bot size={24} className="text-emerald-500" />
+                  OTP Group Buttons
+                </h3>
+                <div className="space-y-4">
+                  {Object.entries(stats?.settings?.group_buttons || {}).map(([gid, btns]: [string, any], i) => (
+                    <div key={i} className="space-y-2">
+                      <span className="text-white/20 text-[10px] font-mono uppercase tracking-tighter">Group: {gid}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {btns.map((b: any, j: number) => (
+                          <div key={j} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-400">
+                            {b.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {Object.keys(stats?.settings?.group_buttons || {}).length === 0 && (
+                    <p className="text-white/20 italic text-sm">No group-specific buttons</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
                   <FileText size={24} className="text-orange-500" />
                   Forwarding & Links
                 </h3>
@@ -316,19 +365,28 @@ export default function App() {
   );
 }
 
-function StatCard({ icon, label, value, subValue, variant }: any) {
+function StatCard({ icon, label, value, subValue, variant, color }: any) {
+  const colorMap: any = {
+    blue: "from-blue-500/20 to-blue-600/5",
+    purple: "from-purple-500/20 to-purple-600/5",
+    emerald: "from-emerald-500/20 to-emerald-600/5",
+    orange: "from-orange-500/20 to-orange-600/5"
+  };
+
   return (
     <motion.div 
       variants={variant}
-      className="bg-white/[0.02] border border-white/5 p-8 rounded-3xl hover:bg-white/[0.04] transition-colors group relative overflow-hidden"
+      className="bg-white/[0.02] border border-white/5 p-8 rounded-3xl hover:bg-white/[0.04] transition-all duration-500 group relative overflow-hidden"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-[60px] translate-x-16 -translate-y-16 group-hover:bg-white/10 transition-colors" />
-      <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-        {icon}
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colorMap[color] || 'from-white/10 to-transparent'} rounded-full blur-[60px] translate-x-16 -translate-y-16 group-hover:scale-150 transition-transform duration-700`} />
+      <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white/10 group-hover:rotate-6 transition-all duration-300">
+        <div className="group-hover:scale-125 transition-transform duration-300">
+          {icon}
+        </div>
       </div>
       <p className="text-white/40 text-sm font-medium mb-1 uppercase tracking-wider">{label}</p>
       <div className="flex items-baseline gap-2 mb-2">
-        <h2 className="text-4xl font-bold tabular-nums">{value}</h2>
+        <h2 className="text-4xl font-black tracking-tighter tabular-nums text-white group-hover:text-blue-400 transition-colors">{value}</h2>
       </div>
       <p className="text-white/20 text-xs font-mono">{subValue}</p>
     </motion.div>

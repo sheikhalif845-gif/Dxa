@@ -23,9 +23,12 @@ const PREMIUM_EMOJIS = {
     "NUMBERS": "5352862640592949843", "ROCKET": "5352597830089347330", "GRAPH": "5352877703043258544",
     "UPLOAD": "5353001161878182134", "BROADCAST": "5352980533150259581", "PIN": "5352922460897452503",
     "DOT": "5352638632278660622", "N1": "5352651766288652742", "N2": "5355186458418257716",
-    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5336997731481193790",
-    "OTP_ID": "5353022963132174959", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
-    "DATE": "5352585194295564660", "WARN": "5336944168944047463"
+    "N3": "5352867219028091093", "WAIT": "5336983442125001376", "CLOSE": "5420130255174145507",
+    "OTP_ID": "5337255927735163754", "OFF": "5352974971167611327", "NOTE": "5395444784611480792",
+    "DATE": "5352585194295564660", "WARN": "5336944168944047463", "SETTINGS": "5420155432272438703",
+    "CHAT": "5337302974806922068", "MEMBER": "5420145051336485498", "ADD": "5420323438508155202",
+    "DELETE": "5422557736330106570", "GIFT": "5420396762189831222", "PC": "5336879280578138635",
+    "WEB": "5336972142066047577", "ARROW": "5420618897898381296", "LINK": "5420517437885943844"
 };
 
 const APP_EMOJIS: { [key: string]: [string, string] } = {
@@ -82,18 +85,31 @@ function getSettings() {
         const defaultSettings = {
             force_join: true,
             channels: [
-                { name: "DXA Universe", url: "https://t.me/dxa_universe", username: "@dxa_universe" },
-                { name: "Developer X Asik", url: "https://t.me/developer_x_asik", username: "@developer_x_asik" }
+                { name: "DXA Universe", url: "https://t.me/dxa_universe", username: "@dxa_universe" }
             ],
             admins: [],
             otp_groups: [],
-            otp_link: "https://t.me/dxaotpzone"
+            otp_link: "https://t.me/dxaotpzone",
+            brand_name: "DXA UNIVERSE",
+            mask_text: "DXA",
+            group_buttons: {}
         };
         writeJson("settings.json", defaultSettings);
         return defaultSettings;
     }
+    
+    // Migration
+    let updated = false;
+    if (!settings.brand_name) { settings.brand_name = "DXA UNIVERSE"; updated = true; }
+    if (!settings.mask_text) { settings.mask_text = "DXA"; updated = true; }
+    if (!settings.group_buttons) { settings.group_buttons = {}; updated = true; }
+    if (updated) writeJson("settings.json", settings);
+
     return settings;
 }
+
+function getBrand() { return getSettings().brand_name || "DXA UNIVERSE"; }
+function getMask() { return getSettings().mask_text || "DXA"; }
 
 function isAdmin(userId: number) {
     if (userId === ADMIN_ID) return true;
@@ -159,7 +175,7 @@ async function showForceJoinMsg(chatId: number) {
     const inline_keyboard = (settings.channels || []).map((c: any) => [
         { text: `Join ${c.name}`, url: c.url }
     ]);
-    inline_keyboard.push([{ text: "Joined ✅", callback_data: "check_join" }]);
+    inline_keyboard.push([{ text: `Joined ${e("✅", PREMIUM_EMOJIS.DONE)}`, callback_data: "check_join" }]);
     await bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
 }
 
@@ -170,13 +186,18 @@ async function showForceJoinMsg(chatId: number) {
         return;
     }
 
+    const brand = getBrand();
     const welcomeText = 
-        `${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA NUMBER BOT ${e("🔥", PREMIUM_EMOJIS.FIRE)}\n` +
+        `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA NUMBER BOT ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
         `━━━━━━━━━━━\n` +
-        `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from?.first_name}</b>! Welcome To DXA UNIVERSE.\n\n` +
-        `${e("📌", PREMIUM_EMOJIS.PIN)} Tap Get Number to start!\n` +
+        `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from?.first_name}</b>! Welcome to DXA UNIVERSE\n` +
+        `${e("💬", PREMIUM_EMOJIS.CHAT)} System Ready to Generate Numbers\n` +
         `━━━━━━━━━━━\n` +
-        `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE`;
+        `${e("📌", PREMIUM_EMOJIS.PIN)} Tap ${e("➤", PREMIUM_EMOJIS.ARROW)} GET NUMBER\n` +
+        `${e("➤", PREMIUM_EMOJIS.ARROW)} To Start Service\n` +
+        `━━━━━━━━━━━\n` +
+        `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE\n` +
+        `━━━━━━━━━━━`;
 
     await bot.sendMessage(msg.chat.id, welcomeText, {
         parse_mode: 'HTML',
@@ -293,6 +314,35 @@ bot.on('message', async (msg) => {
             waitingForInput.delete(userId);
             showManageForceJoin(chatId, lastMenus.get(userId)!);
             return;
+        } else if (state === "set_brand_name") {
+            settings.brand_name = input;
+            writeJson("settings.json", settings);
+            await bot.sendMessage(chatId, `✅ Brand Name updated to: <b>${input}</b>`, { parse_mode: 'HTML' });
+            waitingForInput.delete(userId);
+            showSettingsPanel(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state === "set_mask_text") {
+            settings.mask_text = input;
+            writeJson("settings.json", settings);
+            await bot.sendMessage(chatId, `✅ Mask Text updated to: <b>${input}</b>`, { parse_mode: 'HTML' });
+            waitingForInput.delete(userId);
+            showSettingsPanel(chatId, lastMenus.get(userId)!);
+            return;
+        } else if (state.startsWith("add_grp_spec_btn:")) {
+            const gid = state.split(":")[1];
+            if (input.includes("|")) {
+                const parts = input.split("|").map(p => p.trim());
+                if (parts.length === 2) {
+                    if (!settings.group_buttons) settings.group_buttons = {};
+                    if (!settings.group_buttons[gid]) settings.group_buttons[gid] = [];
+                    settings.group_buttons[gid].push({ text: parts[0], url: parts[1] });
+                    writeJson("settings.json", settings);
+                    await bot.sendMessage(chatId, `✅ Button Added for Group ${gid}!`);
+                }
+            }
+            waitingForInput.delete(userId);
+            showGroupButtonsSettings(chatId, lastMenus.get(userId)!, gid);
+            return;
         } else if (state === "add_otp_msg_btn") {
             if (input.includes("|")) {
                 const parts = input.split("|").map(p => p.trim());
@@ -389,11 +439,14 @@ bot.on('message', async (msg) => {
         try { await bot.deleteMessage(chatId, msg.message_id); } catch (e) {}
         await deleteLastMenu(chatId, userId);
 
-        const supportText = 
-            `${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA SUPPORT CENTER ${e("🔥", PREMIUM_EMOJIS.FIRE)}\n` +
+        const supportText =
+            `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} DXA SUPPORT ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
             `━━━━━━━━━━━\n` +
-            `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from.first_name}</b>! Tell Me How Can I Help You.\n\n` +
-            `${e("📌", PREMIUM_EMOJIS.PIN)} Tap Support Button to Contact The Admin!\n` +
+            `${e("👋", PREMIUM_EMOJIS.HELLO)} Hello, <b>${msg.from.first_name}</b>!\n` +
+            `${e("💬", PREMIUM_EMOJIS.CHAT)} Welcome to DXA Support Panel\n` +
+            `━━━━━━━━━━━\n` +
+            `${e("📌", PREMIUM_EMOJIS.PIN)} Tap Support Button\n` +
+            `${e("➤", PREMIUM_EMOJIS.ARROW)} To Contact The Admin!\n` +
             `━━━━━━━━━━━\n` +
             `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE`;
 
@@ -449,6 +502,7 @@ function showSettingsPanel(chatId: number, messageId: number) {
         [{ text: "👥 Admin Management", callback_data: "manage_admins" }],
         [{ text: "💬 OTP Group System", callback_data: "manage_otp_groups" }],
         [{ text: "🔗 Bot OTP Button Link", callback_data: "manage_bot_otp_link" }],
+        [{ text: "✨ Branding & Masking", callback_data: "manage_branding" }],
         [{ text: "🔙 Back to Admin", callback_data: "admin_panel_back" }]
     ];
     
@@ -516,38 +570,67 @@ async function showManageAdmins(chatId: number, messageId: number) {
 
 async function showManageOtpGroups(chatId: number, messageId: number) {
     const settings = getSettings();
-    let text = `${e("💬", PREMIUM_EMOJIS.SUPPORT)} <b>OTP GROUP SYSTEM</b>\n` +
+    let text = `${e("💬", PREMIUM_EMOJIS.CHAT)} <b>OTP GROUP SYSTEM</b>\n` +
                `━━━━━━━━━━━━━\n\n` +
                `<b>Forwarding Groups:</b>\n`;
     
     const groups = settings.otp_groups || [];
+    const group_buttons = settings.group_buttons || {};
     const inline_keyboard: any[] = [];
     
     if (groups.length === 0) {
-        text += "  • No groups added.\n";
+        text += `  ${e("❌", PREMIUM_EMOJIS.CLOSE)} No groups added.\n`;
     } else {
         groups.forEach((g: any) => {
-            text += `  • <code>${g}</code>\n`;
-            inline_keyboard.push([{ text: `🗑 Remove Group ${g}`, callback_data: `del_otp_grp:${g}` }]);
+            const btn_count = (group_buttons[g.toString()] || []).length;
+            text += `  ${e("🔹", PREMIUM_EMOJIS.DOT)} <code>${g}</code> (${btn_count} Buttons)\n`;
+            inline_keyboard.push([
+                { text: `⚙️ Buttons for ${g}`, callback_data: `setup_grp_btns:${g}` },
+                { text: `🗑 Remove`, callback_data: `del_otp_grp:${g}` }
+            ]);
         });
     }
             
-    text += `\n<b>OTP Msg Extra Buttons:</b>\n`;
+    text += `\n<b>Global OTP Buttons:</b>\n`;
     const buttons = settings.otp_message_buttons || [];
     if (buttons.length === 0) {
-        text += "  • No extra buttons configured.\n";
+        text += `  ${e("❌", PREMIUM_EMOJIS.CLOSE)} No global buttons.\n`;
     } else {
         buttons.forEach((b: any, i: number) => {
-            text += `  ${i+1}. ${b.text} (🔗)\n`;
-            inline_keyboard.push([{ text: `🗑 Delete Btn: ${b.text}`, callback_data: `del_otp_btn:${i}` }]);
+            text += `  ${i+1}. ${b.text} (${e("🔗", PREMIUM_EMOJIS.PIN)})\n`;
+            inline_keyboard.push([{ text: `🗑 Delete Global: ${b.text}`, callback_data: `del_otp_btn:${i}` }]);
         });
     }
 
     text += `\n━━━━━━━━━━━━━`;
     inline_keyboard.push([{ text: "➕ Add Forwarding Group", callback_data: "add_otp_group" }]);
-    inline_keyboard.push([{ text: "➕ Add OTP Inline Button", callback_data: "add_otp_msg_btn" }]);
+    inline_keyboard.push([{ text: "➕ Add Global Button", callback_data: "add_otp_msg_btn" }]);
     if (groups.length > 0 || buttons.length > 0) inline_keyboard.push([{ text: "🗑 Reset OTP System", callback_data: "reset_otp_groups" }]);
     inline_keyboard.push([{ text: "🔙 Back", callback_data: "admin_settings" }]);
+    
+    await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+}
+
+async function showGroupButtonsSettings(chatId: number, messageId: number, groupId: string) {
+    const settings = getSettings();
+    const group_buttons = (settings.group_buttons || {})[groupId] || [];
+    
+    let text = `${e("💬", PREMIUM_EMOJIS.CHAT)} <b>BUTTONS FOR GROUP:</b> <code>${groupId}</code>\n` +
+               `━━━━━━━━━━━━━\n\n` +
+               `These buttons only appear when OTP is forwarded to this specific group.\n\n`;
+    
+    const inline_keyboard: any[] = [];
+    if (group_buttons.length === 0) {
+        text += `  ${e("❌", PREMIUM_EMOJIS.CLOSE)} No group-specific buttons.\n`;
+    } else {
+        group_buttons.forEach((btn: any, i: number) => {
+            text += `  ${i+1}. ${btn.text} (${e("🔗", PREMIUM_EMOJIS.PIN)})\n`;
+            inline_keyboard.push([{ text: `🗑 Delete: ${btn.text}`, callback_data: `del_grp_spec_btn:${groupId}:${i}` }]);
+        });
+    }
+            
+    inline_keyboard.push([{ text: "➕ Add Button", callback_data: `add_grp_spec_btn:${groupId}` }]);
+    inline_keyboard.push([{ text: "🔙 Back", callback_data: "manage_otp_groups" }]);
     
     await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
 }
@@ -726,15 +809,21 @@ bot.on('callback_query', async (query) => {
             return `${icons[i]} <code>${num}</code>`;
         });
 
+        const serviceKey = service.toString().toUpperCase().replace(/\s+/g, '');
+        const premium = APP_EMOJIS[serviceKey];
+        const serviceIcon = premium ? e(premium[0], premium[1]) : e("🖥", PREMIUM_EMOJIS.SUPPORT);
+
         const text = 
-            `${e("✅", PREMIUM_EMOJIS.DONE)} <b>NUMBERS ALLOCATED</b>\n` +
-            `━━━━━━━━━━━━━━\n` +
-            ` ${e("🔹", PREMIUM_EMOJIS.DOT)} Service: <b>${service}</b>\n` +
-            ` ${e("📍", PREMIUM_EMOJIS.PIN)} Country: <b>${country}</b>\n` +
-            `━━━━━━━━━━━━━━\n` +
+            `━━━━━━━━━━━\n` +
+            `《 ${e("✅", PREMIUM_EMOJIS.DONE)} NUMBERS ALLOCATED 》\n` +
+            `━━━━━━━━━━━\n` +
+            `${e("🔹", PREMIUM_EMOJIS.DOT)} Service ${serviceIcon} ${service}\n` +
+            `${e("📍", PREMIUM_EMOJIS.PIN)} Country ${e("🌐", PREMIUM_EMOJIS.WEB)} ${country}\n` +
+            `━━━━━━━━━━━\n` +
             formatted.join("\n") + "\n" +
-            `━━━━━━━━━━━━━━\n` +
-            `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE`;
+            `━━━━━━━━━━━\n` +
+            `${e("😒", PREMIUM_EMOJIS.DXA)} POWERED BY DXA UNIVERSE\n` +
+            `━━━━━━━━━━━`;
 
         const inline_keyboard = [
             [{ text: "🔄 Change Number", callback_data: `sel_country:${service}:${country}` }],
@@ -756,6 +845,32 @@ bot.on('callback_query', async (query) => {
         showManageOtpGroups(chatId, messageId);
     } else if (data === "manage_bot_otp_link") {
         showBotKeypadSettings(chatId, messageId);
+    } else if (data === "manage_branding") {
+        const brand = getBrand();
+        const mask = getMask();
+        const text = `${e("✨", PREMIUM_EMOJIS.FIRE)} <b>BRANDING & MASKING</b>\n` +
+                     `━━━━━━━━━━━━━\n\n` +
+                     `Current Brand: <b>${brand}</b>\n` +
+                     `Current Mask: <b>${mask}</b>\n\n` +
+                     `━━━━━━━━━━━━━`;
+        const inline_keyboard = [
+            [{ text: "✏️ Edit Brand Name", callback_data: "set_brand_name" }],
+            [{ text: "✏️ Edit Mask Text", callback_data: "set_mask_text" }],
+            [{ text: "🔙 Back", callback_data: "admin_settings" }]
+        ];
+        await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+    } else if (data === "set_brand_name") {
+        await safeEdit(chatId, messageId, "✏️ <b>EDIT BRAND NAME</b>\n━━━━━━━━━━━━━\nPlease send the new Brand Name:", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "manage_branding" }]] }
+        });
+        waitingForInput.set(userId, "set_brand_name");
+    } else if (data === "set_mask_text") {
+        await safeEdit(chatId, messageId, "✏️ <b>EDIT MASK TEXT</b>\n━━━━━━━━━━━━━\nPlease send the new Mask string (e.g., DXA):", {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "manage_branding" }]] }
+        });
+        waitingForInput.set(userId, "set_mask_text");
     } else if (data.startsWith("del_chan:")) {
         const idx = parseInt(data.split(":")[1]);
         const settings = getSettings();
@@ -794,6 +909,27 @@ bot.on('callback_query', async (query) => {
             reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "manage_otp_groups" }]] }
         });
         waitingForInput.set(userId, "add_otp_msg_btn");
+    } else if (data.startsWith("setup_grp_btns:")) {
+        const gid = data.split(":")[1];
+        showGroupButtonsSettings(chatId, messageId, gid);
+    } else if (data.startsWith("add_grp_spec_btn:")) {
+        const gid = data.split(":")[1];
+        await safeEdit(chatId, messageId, `➕ <b>ADD BUTTON FOR ${gid}</b>\n━━━━━━━━━━━━━\nFormat: <code>Button Name | https://link.com</code>`, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: `setup_grp_btns:${gid}` }]] }
+        });
+        waitingForInput.set(userId, `add_grp_spec_btn:${gid}`);
+    } else if (data.startsWith("del_grp_spec_btn:")) {
+        const parts = data.split(":");
+        const gid = parts[1];
+        const idx = parseInt(parts[2]);
+        const settings = getSettings();
+        if (settings.group_buttons && settings.group_buttons[gid] && settings.group_buttons[gid][idx]) {
+            settings.group_buttons[gid].splice(idx, 1);
+            writeJson("settings.json", settings);
+            await bot.answerCallbackQuery(query.id, { text: "Button Removed" });
+        }
+        showGroupButtonsSettings(chatId, messageId, gid);
     } else if (data === "admin_settings") {
         showSettingsPanel(chatId, messageId);
     } else if (data === "toggle_force_join") {
@@ -974,7 +1110,7 @@ async function fetchOtps() {
         }
 
         const numbersData = readJson("numbers.json");
-        const now = Date.now();
+        const settings = getSettings();
         
         for (const record of data) {
             if (!Array.isArray(record) || record.length < 4) continue;
@@ -991,105 +1127,85 @@ async function fetchOtps() {
             }
             
             const normalizedApiNum = normalizeNumber(fullNumber);
-            
-            const match = numbersData.find((n: any) => {
-                if (!n.used || !n.assignedTo) return false;
-                const normalizedDbNum = normalizeNumber(n.number);
-                
-                return normalizedDbNum === normalizedApiNum || 
-                       normalizedDbNum.endsWith(normalizedApiNum) || 
-                       normalizedApiNum.endsWith(normalizedDbNum);
-            });
 
-            if (match) {
-                const isoTimestamp = timestamp.includes(' ') ? timestamp.replace(' ', 'T') : timestamp;
-                const messageTime = new Date(isoTimestamp).getTime();
-                
-                // Debug log for every potential match
-                console.log(`[OTP] Found Match! Num: ${normalizedApiNum}, User: ${match.assignedTo}, Msg: ${content}`);
+            // IMPROVED OTP EXTRACTION:
+            const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
+            const code = otpMatch ? otpMatch[0] : "";
 
-                // Relaxed timestamp check to 24 hours to handle potential timezone differences between API and server.
-                if (!isNaN(messageTime) && messageTime < (match.assignedAt - 86400000)) {
-                    console.log(`[OTP] Rejected: Too old. MsgTime: ${messageTime}, AssignedAt: ${match.assignedAt}`);
-                    processedMessages.add(msgId);
-                    continue;
-                }
-
-                // IMPROVED OTP EXTRACTION:
-                // 1. Try 3-3 format (123-456 or 123 456)
-                // 2. Try 4-8 consecutive digits (ignoring \b to handle cases like 1234n)
-                const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
-                let code = otpMatch ? otpMatch[0] : "";
-
-                if (!code) {
-                   console.log(`[OTP] Rejected: No code found in content: "${content}"`);
-                   processedMessages.add(msgId);
-                   continue;
-                }
-
-                const flagKey = (match.country || "").toString().toLowerCase();
-                const flag = COUNTRY_FLAGS[flagKey] || "📱";
-
+            if (code) {
                 // Get service specific premium emoji
                 const serviceKey = service.toString().toUpperCase().replace(/\s+/g, '');
                 let serviceIcon;
-                
                 const premium = APP_EMOJIS[serviceKey];
                 if (premium) {
                     serviceIcon = e(premium[0], premium[1]);
                 } else {
-                    // Default premium icon for unknown services
                     serviceIcon = e("🖥", PREMIUM_EMOJIS.SUPPORT);
                 }
 
-                // Format: Icon Service Number
-                const msgBody = `${serviceIcon} <b>${service}</b>  <code>${normalizedApiNum}</code>`;
+                const brand = getBrand();
+                const mask = getMask();
                 const maskedNum = normalizedApiNum.length >= 7 
-                    ? `${normalizedApiNum.slice(0, 3)}DXA${normalizedApiNum.slice(-4)}`
+                    ? `${normalizedApiNum.slice(0, 3)}${mask}${normalizedApiNum.slice(-4)}`
                     : normalizedApiNum;
-                const groupMsgBody = `${serviceIcon} <b>${service}</b>  <code>${maskedNum}</code>`;
+                
+                const groupMsgBody = `${serviceIcon} <b>${service}</b> <code>${maskedNum}</code>`;
 
-                const reply_markup: any = {
-                    inline_keyboard: [
-                        [{ 
-                            text: `📋 ${code}`, 
-                            copy_text: { text: code } 
-                        } as any]
-                    ]
+                const getOtpMarkup = (specificButtons: any[] | null = null, otpCode: string) => {
+                    const m_obj: any = {
+                        inline_keyboard: [
+                            [{ 
+                                text: `📋 ${otpCode}`, 
+                                copy_text: { text: otpCode } 
+                            } as any]
+                        ]
+                    };
+                    const btns = specificButtons !== null ? specificButtons : (settings.otp_message_buttons || []);
+                    btns.forEach((btn: any) => {
+                        m_obj.inline_keyboard.push([{ text: btn.text, url: btn.url }]);
+                    });
+                    return m_obj;
                 };
 
-                // Add custom buttons from settings
-                const settings = getSettings();
-                (settings.otp_message_buttons || []).forEach((btn: any) => {
-                    reply_markup.inline_keyboard.push([{ text: btn.text, url: btn.url }]);
-                });
-
-                try {
-                    await bot.sendMessage(match.assignedTo, msgBody, { 
-                        parse_mode: 'HTML', 
-                        reply_markup 
-                    });
-                    
-                    // Forward to OTP Groups
-                    for (const gId of (settings.otp_groups || [])) {
-                        try {
-                    const targetId = /^-?\d+$/.test(gId.toString()) ? parseInt(gId.toString()) : gId;
-                    await bot.sendMessage(targetId, groupMsgBody, { parse_mode: 'HTML', reply_markup }); 
-                } catch (forwardErr: any) {
-                    console.error(`[OTP] Forward to group ${gId} failed:`, forwardErr.message || "Unknown Error");
+                // 1. Forward to ALL OTP Groups (Global)
+                const groupButtons = settings.group_buttons || {};
+                for (const gId of (settings.otp_groups || [])) {
+                    try {
+                        const targetId = /^-?\d+$/.test(gId.toString()) ? parseInt(gId.toString()) : gId;
+                        const specBtns = groupButtons[gId.toString()];
+                        await bot.sendMessage(targetId, groupMsgBody, { 
+                            parse_mode: 'HTML', 
+                            reply_markup: getOtpMarkup(specBtns || null, code) 
+                        });
+                    } catch (forwardErr: any) {
+                        console.error(`[OTP] Forward to group ${gId} failed:`, forwardErr.message || "Unknown Error");
+                    }
                 }
-            }
 
-            processedMessages.add(msgId);
-            console.log(`[OTP] SUCCESS: Sent ${code} to ${match.assignedTo}`);
-        } catch (sendErr: any) {
-            console.error(`[OTP] Send failed to ${match.assignedTo}:`, sendErr.message || "Unknown Error");
+                // 2. Check if number belongs to a user and send to them
+                const match = numbersData.find((n: any) => 
+                    normalizeNumber(n.number) === normalizedApiNum && n.status === "active"
+                ) as any;
+
+                if (match && match.assignedTo) {
+                    try {
+                        const msgBody = `${e("🚫", PREMIUM_EMOJIS.CLOSE)} <b>${service}</b>  <code>${normalizedApiNum}</code>`;
+                        await bot.sendMessage(match.assignedTo, msgBody, { 
+                            parse_mode: 'HTML', 
+                            reply_markup: getOtpMarkup(null, code)
+                        });
+                        console.log(`[OTP] SUCCESS: Sent ${code} to user ${match.assignedTo}`);
+                    } catch (sendErr: any) {
+                        console.error(`[OTP] Send failed to user ${match.assignedTo}:`, sendErr.message || "Unknown Error");
+                    }
+                }
+
+                processedMessages.add(msgId);
+            }
         }
+    } catch (err: any) {
+        console.error("[OTP] Global fetch error:", err.message || "Network Error");
     }
-}
-} catch (err: any) {
-console.error("[OTP] Global fetch error:", err.message || "Network Error");
-}
 }
 
 // --- Server Setup ---
