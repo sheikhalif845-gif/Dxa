@@ -19,6 +19,7 @@ if (BOT_TOKEN === "YOUR_BOT_TOKEN") {
     console.error("❌ [TELEGRAM] BOT_TOKEN is missing or invalid in .env file.");
 }
 
+/* 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 bot.on('polling_error', (error) => {
@@ -29,6 +30,7 @@ bot.on('polling_error', (error) => {
         console.error("[TELEGRAM] Polling Error:", error.message);
     }
 });
+*/
 
 const PREMIUM_EMOJIS = {
     "FIRE": "5337267511261960341", "HELLO": "5353027129250453493", "DXA": "5334763399299506604",
@@ -1332,6 +1334,7 @@ async function startServer() {
         console.log(`Bot is running...`);
         
         // Setup Bot Commands and Menu Button
+        /* 
         try {
             bot.setMyCommands([
                 { command: 'start', description: 'Start the bot' },
@@ -1344,9 +1347,10 @@ async function startServer() {
         } catch (e) {
             console.error("Failed to set bot commands:", e);
         }
+        */
 
         // Start OTP Monitor
-        setInterval(fetchOtps, 5000);
+        // setInterval(fetchOtps, 5000);
     });
 }
 
