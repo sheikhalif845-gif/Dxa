@@ -5,6 +5,8 @@ import fs from 'fs';
 import TelegramBot from 'node-telegram-bot-api';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import axios from 'axios';
+import cors from 'cors';
 
 dotenv.config();
 
@@ -386,9 +388,9 @@ bot.on('message', async (msg) => {
             
             try {
                 const fileLink = await bot.getFileLink(fileId);
-                const response = await fetch(fileLink);
-                const text = await response.text();
-                const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+                const response = await axios.get(fileLink, { responseType: 'text' });
+                const text = response.data;
+                const lines = text.split(/\r?\n/).filter((l: string) => l.trim() !== "");
                 
                 const numbers = readJson("numbers.json");
                 const files = readJson("files.json");
@@ -1164,21 +1166,8 @@ function getServiceInfo(originalService: string, content: string) {
 
 async function fetchOtps() {
     try {
-        const response = await fetch(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`);
-        const text = await response.text();
-
-        if (!response.ok) {
-            console.error(`[OTP] API Error (${response.status}): ${text.substring(0, 100)}`);
-            return;
-        }
-
-        let data: any[];
-        try {
-            data = JSON.parse(text);
-        } catch (parseErr) {
-            console.error(`[OTP] JSON Parse Error: ${text.substring(0, 100)}...`);
-            return;
-        }
+        const response = await axios.get(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`, { timeout: 10000 });
+        const data = response.data;
 
         if (!Array.isArray(data)) {
             console.error("[OTP] API returned non-array data type:", typeof data);
@@ -1293,7 +1282,11 @@ async function startServer() {
     const app = express();
     const PORT = 3000;
 
+    app.use(cors());
     app.use(express.json());
+
+    // Health check
+    app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
     // API Routes for Dashboard
     app.get('/api/stats', (req, res) => {
