@@ -145,7 +145,7 @@ def show_force_join_msg(chat_id):
     markup = types.InlineKeyboardMarkup()
     for c in settings.get("channels", []):
         markup.add(types.InlineKeyboardButton(f"Join {c['name']}", url=c['url']))
-    markup.add(types.InlineKeyboardButton(f"Joined {e('✅', PREMIUM_EMOJIS['DONE'])}", callback_data="check_join"))
+    markup.add(types.InlineKeyboardButton("Joined ✅", callback_data="check_join"))
     bot.send_message(chat_id, text, reply_markup=markup)
 
 def delete_last_menu(chat_id, user_id):
@@ -170,12 +170,12 @@ def show_services(chat_id, message_id=None, user_id=None):
     markup = types.InlineKeyboardMarkup()
     if not services:
         text = f"{e('❌', PREMIUM_EMOJIS['CLOSE'])} No numbers available at the moment."
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
     else:
         text = f"{e('📱', PREMIUM_EMOJIS['NUMBER'])} <b>Select a Service:</b>"
         for s in services:
-            markup.add(types.InlineKeyboardButton(f"{e('🔹', PREMIUM_EMOJIS['DOT'])} {s}", callback_data=f"sel_service:{s}"))
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
+            markup.add(types.InlineKeyboardButton(f"🔹 {s}", callback_data=f"sel_service:{s}"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
 
     if message_id:
         try: bot.edit_message_text(text, chat_id, message_id, reply_markup=markup)
@@ -190,12 +190,12 @@ def show_settings_panel(chat_id, message_id):
             f"Welcome to the bot configuration hub. Select a category below to manage your bot instance.")
     
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton(f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} Force Join System", callback_data="manage_force_join"))
-    markup.row(types.InlineKeyboardButton(f"{e('👥', PREMIUM_EMOJIS['MEMBER'])} Admin Management", callback_data="manage_admins"))
-    markup.row(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['CHAT'])} OTP Group Management", callback_data="manage_otp_groups"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔗', PREMIUM_EMOJIS['PIN'])} Bot OTP Button Link", callback_data="manage_bot_otp_link"))
-    markup.row(types.InlineKeyboardButton(f"{e('✨', PREMIUM_EMOJIS['FIRE'])} Branding & Masking", callback_data="manage_branding"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back to Admin", callback_data="admin_panel_back"))
+    markup.row(types.InlineKeyboardButton("📢 Force Join System", callback_data="manage_force_join"))
+    markup.row(types.InlineKeyboardButton("👥 Admin Management", callback_data="manage_admins"))
+    markup.row(types.InlineKeyboardButton("💬 OTP Group Management", callback_data="manage_otp_groups"))
+    markup.row(types.InlineKeyboardButton("🔗 Bot OTP Button Link", callback_data="manage_bot_otp_link"))
+    markup.row(types.InlineKeyboardButton("✨ Branding & Masking", callback_data="manage_branding"))
+    markup.row(types.InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_panel_back"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -216,16 +216,16 @@ def show_manage_force_join(chat_id, message_id):
     else:
         for i, c in enumerate(channels):
             text += f"  {i+1}. {c['name']} (<code>{c['username']}</code>)\n"
-            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete {c['name']}", callback_data=f"del_chan:{i}"))
+            markup.row(types.InlineKeyboardButton(f"🗑 Delete {c['name']}", callback_data=f"del_chan:{i}"))
     
     text += f"\n━━━━━━━━━━━━━"
     
-    btn_toggle = f"OFF {e('❌', PREMIUM_EMOJIS['CLOSE'])}" if settings.get("force_join") else f"ON {e('✅', PREMIUM_EMOJIS['DONE'])}"
+    btn_toggle = "OFF ❌" if settings.get("force_join") else "ON ✅"
     markup.row(types.InlineKeyboardButton(f"Toggle Force Join: {btn_toggle}", callback_data="toggle_force_join"))
-    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Channel", callback_data="add_channel"))
+    markup.row(types.InlineKeyboardButton("➕ Add Channel", callback_data="add_channel"))
     if channels:
-        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete All Channels", callback_data="reset_channels"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton("🗑 Delete All Channels", callback_data="reset_channels"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -244,13 +244,13 @@ def show_manage_admins(chat_id, message_id):
     else:
         for a in admins:
             text += f"  • <code>{a}</code>\n"
-            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove Admin {a}", callback_data=f"del_admin:{a}"))
+            markup.row(types.InlineKeyboardButton(f"🗑 Remove Admin {a}", callback_data=f"del_admin:{a}"))
             
     text += f"\n━━━━━━━━━━━━━"
-    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Admin", callback_data="add_admin"))
+    markup.row(types.InlineKeyboardButton("➕ Add Admin", callback_data="add_admin"))
     if admins:
-        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove All Co-Admins", callback_data="reset_admins"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton("🗑 Remove All Co-Admins", callback_data="reset_admins"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -270,8 +270,8 @@ def show_manage_otp_groups(chat_id, message_id):
         for g in groups:
             btn_count = len(group_buttons.get(str(g), []))
             text += f"  {e('🔹', PREMIUM_EMOJIS['DOT'])} <code>{g}</code> ({btn_count} Buttons)\n"
-            markup.row(types.InlineKeyboardButton(f"{e('⚙️', PREMIUM_EMOJIS['SETTINGS'])} Buttons for {g}", callback_data=f"setup_grp_btns:{g}"),
-                       types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Remove", callback_data=f"del_otp_grp:{g}"))
+            markup.row(types.InlineKeyboardButton(f"⚙️ Buttons for {g}", callback_data=f"setup_grp_btns:{g}"),
+                       types.InlineKeyboardButton("🗑 Remove", callback_data=f"del_otp_grp:{g}"))
             
     text += (f"\n<b>Global OTP Buttons:</b>\n")
     buttons = settings.get("otp_message_buttons", [])
@@ -280,14 +280,14 @@ def show_manage_otp_groups(chat_id, message_id):
     else:
         for i, b in enumerate(buttons):
             text += f"  {i+1}. {b['text']} ({e('🔗', PREMIUM_EMOJIS['PIN'])})\n"
-            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete Global: {b['text']}", callback_data=f"del_otp_btn:{i}"))
+            markup.row(types.InlineKeyboardButton(f"🗑 Delete Global: {b['text']}", callback_data=f"del_otp_btn:{i}"))
  
     text += f"\n━━━━━━━━━━━━━"
-    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Forwarding Group", callback_data="add_otp_group"))
-    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Global Button", callback_data="add_otp_msg_btn"))
+    markup.row(types.InlineKeyboardButton("➕ Add Forwarding Group", callback_data="add_otp_group"))
+    markup.row(types.InlineKeyboardButton("➕ Add Global Button", callback_data="add_otp_msg_btn"))
     if groups or buttons:
-        markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Reset OTP System", callback_data="reset_otp_groups"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.row(types.InlineKeyboardButton("🗑 Reset OTP System", callback_data="reset_otp_groups"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -305,10 +305,10 @@ def show_group_buttons_settings(chat_id, message_id, group_id):
     else:
         for i, btn in enumerate(group_buttons):
             text += f"  {i+1}. {btn['text']} ({e('🔗', PREMIUM_EMOJIS['PIN'])})\n"
-            markup.row(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete: {btn['text']}", callback_data=f"del_grp_spec_btn:{group_id}:{i}"))
+            markup.row(types.InlineKeyboardButton(f"🗑 Delete: {btn['text']}", callback_data=f"del_grp_spec_btn:{group_id}:{i}"))
             
-    markup.row(types.InlineKeyboardButton(f"{e('➕', PREMIUM_EMOJIS['ADD'])} Add Button", callback_data=f"add_grp_spec_btn:{group_id}"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_otp_groups"))
+    markup.row(types.InlineKeyboardButton("➕ Add Button", callback_data=f"add_grp_spec_btn:{group_id}"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="manage_otp_groups"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -322,9 +322,9 @@ def show_branding_settings(chat_id, message_id):
             f"━━━━━━━━━━━━━")
     
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Brand Name", callback_data="set_brand_name"))
-    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Mask Text", callback_data="set_mask_text"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+    markup.row(types.InlineKeyboardButton("✏️ Edit Brand Name", callback_data="set_brand_name"))
+    markup.row(types.InlineKeyboardButton("✏️ Edit Mask Text", callback_data="set_mask_text"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -338,8 +338,8 @@ def show_bot_keypad_settings(chat_id, message_id):
             f"━━━━━━━━━━━━━")
     
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton(f"{e('✏️', PREMIUM_EMOJIS['NOTE'])} Edit Link", callback_data="set_otp_link"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+    markup.row(types.InlineKeyboardButton("✏️ Edit Link", callback_data="set_otp_link"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
     
     bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode='HTML')
 
@@ -472,13 +472,13 @@ def show_admin_panel(chat_id, message_id=None, user_id=None):
             f"━━━━━━━━━━━━━")
 
     markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton(f"{e('📤', PREMIUM_EMOJIS['UPLOAD'])} Upload Numbers", callback_data="admin_upload"),
-               types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} Delete Files", callback_data="admin_delete_files"))
-    markup.row(types.InlineKeyboardButton(f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} Broadcast", callback_data="admin_broadcast"),
-               types.InlineKeyboardButton(f"{e('⚙️', PREMIUM_EMOJIS['SETTINGS'])} Settings", callback_data="admin_settings"))
-    markup.row(types.InlineKeyboardButton(f"{e('✅', PREMIUM_EMOJIS['DONE'])} Used Numbers", callback_data="view_used"),
-               types.InlineKeyboardButton(f"{e('🚀', PREMIUM_EMOJIS['ROCKET'])} Unused Numbers", callback_data="view_unused"))
-    markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
+    markup.row(types.InlineKeyboardButton("📤 Upload Numbers", callback_data="admin_upload"),
+               types.InlineKeyboardButton("🗑 Delete Files", callback_data="admin_delete_files"))
+    markup.row(types.InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+               types.InlineKeyboardButton("⚙️ Settings", callback_data="admin_settings"))
+    markup.row(types.InlineKeyboardButton("✅ Used Numbers", callback_data="view_used"),
+               types.InlineKeyboardButton("🚀 Unused Numbers", callback_data="view_unused"))
+    markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
 
     if message_id:
         try: bot.edit_message_text(text, chat_id, message_id, reply_markup=markup)
@@ -559,8 +559,8 @@ def handle_msg(msg):
                 f"━━━━━━━━━━━\n"
                 f"😒 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['SUPPORT'])} Support Center", url="https://t.me/asik_x_bd_bot"))
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="close_menu"))
+        markup.add(types.InlineKeyboardButton("💬 Support Center", url="https://t.me/asik_x_bd_bot"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="close_menu"))
         sent = bot.send_message(chat_id, text, reply_markup=markup)
         last_menus[user_id] = sent.message_id
         
@@ -627,7 +627,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Send the new brand name (e.g., DXA UNIVERSE):")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_branding"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="manage_branding"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_brand_name_set)
 
@@ -636,7 +636,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Send the new mask string (e.g., DXA):")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_branding"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="manage_branding"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_mask_text_set)
 
@@ -650,7 +650,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Format: <code>Button Name | https://link.com</code>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data=f"setup_grp_btns:{gid}"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data=f"setup_grp_btns:{gid}"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup, parse_mode='HTML')
         bot.register_next_step_handler(sent, lambda m: process_grp_spec_btn_add(m, gid))
 
@@ -708,7 +708,7 @@ def callback(call):
                 f"Send button details as:\n"
                 f"<code>Button Name | https://link.com</code>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="manage_otp_groups"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="manage_otp_groups"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup, parse_mode='HTML')
         bot.register_next_step_handler(sent, process_otp_btn_add)
 
@@ -720,7 +720,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Please send the Telegram User ID of the new admin:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_admin_add)
 
@@ -736,7 +736,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Please send the Group/Channel ID where OTPs should be forwarded:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_otp_group_add)
 
@@ -752,7 +752,7 @@ def callback(call):
                 f"━━━━━━━━━━━━━\n"
                 f"Please send the invitation URL for your OTP group:")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_otp_link_set)
 
@@ -778,7 +778,7 @@ def callback(call):
                 f"Example:\n"
                 f"<code>My Channel | https://t.me/mychan | @mychan</code>")
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_settings"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_settings"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_channel_add)
 
@@ -804,7 +804,7 @@ def callback(call):
         markup = types.InlineKeyboardMarkup()
         for country in countries:
             markup.add(types.InlineKeyboardButton(f"📍 {country}", callback_data=f"sel_country:{service}:{country}"))
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="back_to_services"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="back_to_services"))
         
         text = f"{e('📍', PREMIUM_EMOJIS['PIN'])} <b>Select Country for {service}:</b>"
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
@@ -868,8 +868,8 @@ def callback(call):
         markup = types.InlineKeyboardMarkup()
         otp_btn_link = get_settings().get("otp_link", "https://t.me/dxaotpzone")
         markup.row(types.InlineKeyboardButton("🔄 Change Number", callback_data=f"sel_country:{service}:{country}"))
-        markup.row(types.InlineKeyboardButton(f"{e('💬', PREMIUM_EMOJIS['CHAT'])} OTP Group", url=otp_btn_link))
-        markup.row(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="back_to_services"))
+        markup.row(types.InlineKeyboardButton("💬 OTP Group", url=otp_btn_link))
+        markup.row(types.InlineKeyboardButton("🔙 Back", callback_data="back_to_services"))
         
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         except: pass
@@ -877,14 +877,14 @@ def callback(call):
     elif data == "admin_upload":
         text = f"{e('📤', PREMIUM_EMOJIS['UPLOAD'])} <b>UPLOAD NUMBERS</b>\n━━━━━━━━━━━━━\nPlease send the .txt file containing numbers."
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, handle_admin_upload_file)
 
     elif data == "admin_broadcast":
         text = f"{e('📢', PREMIUM_EMOJIS['BROADCAST'])} <b>BROADCAST MESSAGE</b>\n━━━━━━━━━━━━━\nSend message to broadcast:"
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
         sent = bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         bot.register_next_step_handler(sent, process_broadcast)
 
@@ -895,8 +895,8 @@ def callback(call):
             return
         markup = types.InlineKeyboardMarkup()
         for f in files:
-            markup.add(types.InlineKeyboardButton(f"{e('🗑', PREMIUM_EMOJIS['DELETE'])} {f['fileName']} ({f['service']})", callback_data=f"del_file:{f['id']}"))
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
+            markup.add(types.InlineKeyboardButton(f"🗑 {f['fileName']} ({f['service']})", callback_data=f"del_file:{f['id']}"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
         try: bot.edit_message_text("Select a file to delete:", chat_id, call.message.message_id, reply_markup=markup)
         except: pass
 
@@ -946,8 +946,8 @@ def callback(call):
                 f"━━━━━━━━━━━━━")
                 
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton(f"{e('📥', PREMIUM_EMOJIS['FILE'])} Download {label.capitalize()} (.txt)", callback_data=f"download_{label.lower()}"))
-        markup.add(types.InlineKeyboardButton(f"{e('🔙', PREMIUM_EMOJIS['CLOSE'])} Back", callback_data="admin_panel_back"))
+        markup.add(types.InlineKeyboardButton(f"📥 Download {label.capitalize()} (.txt)", callback_data=f"download_{label.lower()}"))
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="admin_panel_back"))
         try: bot.edit_message_text(text, chat_id, call.message.message_id, reply_markup=markup)
         except: pass
 
