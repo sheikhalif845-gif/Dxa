@@ -5,8 +5,6 @@ import fs from 'fs';
 import TelegramBot from 'node-telegram-bot-api';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import axios from 'axios';
-import cors from 'cors';
 
 dotenv.config();
 
@@ -76,7 +74,6 @@ const OTP_API_TOKEN = process.env.OTP_API_TOKEN || "R1dPQUFBUzSLhmRod3SLV0OYhHxK
 
 const cooldowns = new Map<number, number>();
 const processedMessages = new Set<string>();
-const lastNumberOtp = new Map<string, string>();
 
 function readJson(filename: string) {
     const filePath = path.join(DATA_DIR, filename);
@@ -154,11 +151,12 @@ function getMainButtons(userId: number) {
         [{ text: "📱 Get Number" }, { text: "🛠 Support" }]
     ];
     if (isAdmin(userId)) {
-        buttons.push([{ text: "👑 Admin Panel" }]);
+        buttons.push([{ text: "👑 Menu Builder" }]);
     }
     return {
         keyboard: buttons,
-        resize_keyboard: true
+        resize_keyboard: true,
+        is_persistent: true
     };
 }
 
@@ -167,6 +165,14 @@ function getMainButtons(userId: number) {
 bot.onText(/\/start/, async (msg) => {
     const userId = msg.from?.id;
     if (!userId) return;
+
+    // Set Menu Button for the bot to be persistent
+    try {
+        await (bot as any).setChatMenuButton({
+            chat_id: msg.chat.id,
+            menu_button: { type: 'commands' }
+        });
+    } catch (e) {}
 
     const users = readJson("users.json");
     if (!users.some((u: any) => u.uid === userId.toString())) {
@@ -191,7 +197,7 @@ async function showForceJoinMsg(chatId: number) {
     const inline_keyboard = (settings.channels || []).map((c: any) => [
         { text: `Join ${c.name}`, url: c.url }
     ]);
-    inline_keyboard.push([{ text: `Joined ✅`, callback_data: "check_join" }]);
+    inline_keyboard.push([{ text: `Joined ${e("✅", PREMIUM_EMOJIS.DONE)}`, callback_data: "check_join" }]);
     await bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
 }
 
@@ -222,6 +228,24 @@ async function showForceJoinMsg(chatId: number) {
         reply_markup: getMainButtons(userId)
     });
     lastMenus.set(userId, sent.message_id);
+});
+
+bot.onText(/\/menu/, async (msg) => {
+    const userId = msg.from?.id;
+    if (!userId) return;
+
+    const brand = getBrand();
+    const welcomeText = 
+        `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 𝗗𝗫𝗔 𝗠𝗘𝗡𝗨 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
+        `━━━━━━━━━━━\n` +
+        `${e("📱", PREMIUM_EMOJIS.NUMBERS)} 𝗬𝗼𝘂𝗿 𝗣𝗲𝗿𝘀𝗶𝘀𝘁𝗲𝗻𝘁 𝗠𝗲𝗻𝘂 𝗶𝘀 𝗥𝗲𝗮𝗱𝘆\n` +
+        `━━━━━━━━━━━\n` +
+        `${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>${brand}</b>`;
+
+    await bot.sendMessage(msg.chat.id, welcomeText, {
+        parse_mode: 'HTML',
+        reply_markup: getMainButtons(userId)
+    });
 });
 
 const lastMenus = new Map<number, number>();
@@ -388,9 +412,9 @@ bot.on('message', async (msg) => {
             
             try {
                 const fileLink = await bot.getFileLink(fileId);
-                const response = await axios.get(fileLink, { responseType: 'text' });
-                const text = response.data;
-                const lines = text.split(/\r?\n/).filter((l: string) => l.trim() !== "");
+                const response = await fetch(fileLink);
+                const text = await response.text();
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
                 
                 const numbers = readJson("numbers.json");
                 const files = readJson("files.json");
@@ -421,26 +445,15 @@ bot.on('message', async (msg) => {
         } else if (state === "admin_broadcast") {
             const users = readJson("users.json");
             let count = 0;
-            const statusMsg = await bot.sendMessage(chatId, `${e("⏳", PREMIUM_EMOJIS.WAIT)} <b>Broadcasting...</b>\nProgress: 0/${users.length}`, { parse_mode: 'HTML' });
+            const statusMsg = await bot.sendMessage(chatId, `${e("📢", PREMIUM_EMOJIS.BROADCAST)} Broadcasting...`, { parse_mode: 'HTML' });
             
-            for (let i = 0; i < users.length; i++) {
-                const u = users[i];
+            for (const u of users) {
                 try {
                     await bot.copyMessage(u.uid, chatId, msg.message_id);
                     count++;
-                } catch (e) {}
-                
-                // Update progress every 10 users to avoid rate limiting
-                if ((i + 1) % 10 === 0 || i === users.length - 1) {
-                    await bot.editMessageText(`${e("⏳", PREMIUM_EMOJIS.WAIT)} <b>Broadcasting...</b>\nProgress: ${i + 1}/${users.length}\nSuccessful: ${count}`, {
-                        chat_id: chatId,
-                        message_id: statusMsg.message_id,
-                        parse_mode: 'HTML'
-                    }).catch(() => {});
-                }
+                } catch {}
             }
-            
-            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} <b>Broadcast complete!</b>\n━━━━━━━━━━━━━\nSent to: ${count} users.\nFailed: ${users.length - count}`, {
+            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} Broadcast complete! Sent to ${count} users.`, {
                 chat_id: chatId,
                 message_id: statusMsg.message_id,
                 parse_mode: 'HTML'
@@ -488,7 +501,7 @@ bot.on('message', async (msg) => {
         };
         const sent = await bot.sendMessage(chatId, supportText, { parse_mode: 'HTML', reply_markup });
         lastMenus.set(userId, sent.message_id);
-    } else if (msg.text === "👑 Admin Panel" && isAdmin(userId)) {
+    } else if ((msg.text === "👑 Admin Panel" || msg.text === "👑 Menu Builder") && isAdmin(userId)) {
         try { await bot.deleteMessage(chatId, msg.message_id); } catch (e) {}
         await deleteLastMenu(chatId, userId);
         showAdminPanel(chatId, undefined, userId);
@@ -710,7 +723,7 @@ async function showAdminPanel(chatId: number, messageId?: number, userId?: numbe
 
     const inline_keyboard = [
         [{ text: "📤 Upload Numbers", callback_data: "admin_upload" }, { text: "🗑 Delete Files", callback_data: "admin_delete_files" }],
-        [{ text: "📢 Broadcast", callback_data: "admin_broadcast" }, { text: "⚙️ Settings", callback_data: "admin_settings" }],
+        [{ text: "📢 Broadcast", callback_data: "admin_broadcast" }, { text: "⚙️ Menu Builder", callback_data: "admin_settings" }],
         [{ text: "✅ Used Numbers", callback_data: "view_used" }, { text: "🚀 Unused Numbers", callback_data: "view_unused" }],
         [{ text: "🔙 Back", callback_data: "close_menu" }]
     ];
@@ -961,7 +974,6 @@ bot.on('callback_query', async (query) => {
         }
         showGroupButtonsSettings(chatId, messageId, gid);
     } else if (data === "admin_settings") {
-        waitingForInput.delete(userId);
         showSettingsPanel(chatId, messageId);
     } else if (data === "toggle_force_join") {
         const settings = getSettings();
@@ -1059,7 +1071,6 @@ bot.on('callback_query', async (query) => {
         await bot.answerCallbackQuery(query.id, { text: "✅ File and numbers deleted!" });
         showAdminPanel(chatId, messageId);
     } else if (data === "admin_panel_back") {
-        waitingForInput.delete(userId);
         showAdminPanel(chatId, messageId);
     } else if (data === "view_used" || data === "view_unused") {
         const isUsed = data === "view_used";
@@ -1166,9 +1177,12 @@ function getServiceInfo(originalService: string, content: string) {
 
 async function fetchOtps() {
     try {
-        const response = await axios.get(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`, { timeout: 10000 });
-        const data = response.data;
-
+        const response = await fetch(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`);
+        if (!response.ok) {
+            console.error(`[OTP] API Error: ${response.status} ${response.statusText}`);
+            return;
+        }
+        const data = await response.json() as any[];
         if (!Array.isArray(data)) {
             console.error("[OTP] API returned non-array data type:", typeof data);
             return;
@@ -1182,31 +1196,20 @@ async function fetchOtps() {
             
             const [service, fullNumber, content, timestamp] = record;
             const msgId = `${fullNumber}_${timestamp}`;
-            const normalizedApiNum = normalizeNumber(fullNumber);
             
             if (processedMessages.has(msgId)) continue;
             
-            // Extract OTP
-            const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
-            const code = otpMatch ? otpMatch[0] : content;
-
-            // DEDUPLICATION: Only send if OTP code is DIFFERENT for this number
-            const lastCode = lastNumberOtp.get(normalizedApiNum);
-            if (lastCode === code) {
-                processedMessages.add(msgId); // Mark as processed to skip future API returns
-                continue;
-            }
-
-            // Update safety trackers
+            // Limit processedMessages set size to 10,000 to prevent memory leaks
             if (processedMessages.size > 10000) {
                 const firstElement = processedMessages.values().next().value;
                 processedMessages.delete(firstElement);
             }
-            lastNumberOtp.set(normalizedApiNum, code);
-            if (lastNumberOtp.size > 5000) {
-                const firstKey = lastNumberOtp.keys().next().value;
-                lastNumberOtp.delete(firstKey);
-            }
+            
+            const normalizedApiNum = normalizeNumber(fullNumber);
+
+            // IMPROVED OTP EXTRACTION:
+            const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
+            const code = otpMatch ? otpMatch[0] : content; // Use full content if no code found
 
             if (content) {
                 const { service: detectedService, serviceIcon } = getServiceInfo(service, content);
@@ -1282,11 +1285,7 @@ async function startServer() {
     const app = express();
     const PORT = 3000;
 
-    app.use(cors());
     app.use(express.json());
-
-    // Health check
-    app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
     // API Routes for Dashboard
     app.get('/api/stats', (req, res) => {
@@ -1332,6 +1331,20 @@ async function startServer() {
         console.log(`Server running on http://localhost:${PORT}`);
         console.log(`Bot is running...`);
         
+        // Setup Bot Commands and Menu Button
+        try {
+            bot.setMyCommands([
+                { command: 'start', description: 'Start the bot' },
+                { command: 'menu', description: 'Open Main Menu / Builder' },
+                { command: 'support', description: 'Contact Support' }
+            ]);
+            bot.setChatMenuButton({
+                menu_button: { type: 'commands' }
+            });
+        } catch (e) {
+            console.error("Failed to set bot commands:", e);
+        }
+
         // Start OTP Monitor
         setInterval(fetchOtps, 5000);
     });
