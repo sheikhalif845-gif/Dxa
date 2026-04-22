@@ -12,9 +12,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- Configuration ---
-const BOT_TOKEN = process.env.BOT_TOKEN || "8332473503:AAEvyS-iBhm6eVp1VdEMYpTLhX5KEUu0WxQ";
+const BOT_TOKEN = process.env.BOT_TOKEN || "8332473503:AAFvgTSIEdiCWiPwAJq7uKm2Dg_hMmgydRg";
 const ADMIN_ID = parseInt(process.env.ADMIN_ID || "8197284774");
-const bot = new TelegramBot(BOT_TOKEN, { polling: true }); // Enable polling to "turn on" the bot
+
+if (BOT_TOKEN === "YOUR_BOT_TOKEN") {
+    console.error("❌ [TELEGRAM] BOT_TOKEN is missing or invalid in .env file.");
+}
+
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+
+bot.on('polling_error', (error) => {
+    if (error.message.includes('401')) {
+        console.error("❌ [TELEGRAM] ERROR 401: Unauthorized. Your BOT_TOKEN is invalid. Please check your .env file.");
+        bot.stopPolling();
+    } else {
+        console.error("[TELEGRAM] Polling Error:", error.message);
+    }
+});
 
 const PREMIUM_EMOJIS = {
     "FIRE": "5337267511261960341", "HELLO": "5353027129250453493", "DXA": "5334763399299506604",
@@ -174,7 +188,7 @@ async function showForceJoinMsg(chatId: number) {
     const inline_keyboard = (settings.channels || []).map((c: any) => [
         { text: `Join ${c.name}`, url: c.url }
     ]);
-    inline_keyboard.push([{ text: `Joined ${e("✅", PREMIUM_EMOJIS.DONE)}`, callback_data: "check_join" }]);
+    inline_keyboard.push([{ text: `Joined ✅`, callback_data: "check_join" }]);
     await bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
 }
 
@@ -186,6 +200,8 @@ async function showForceJoinMsg(chatId: number) {
     }
 
     const brand = getBrand();
+    await deleteLastMenu(msg.chat.id, userId);
+
     const welcomeText = 
         `═《 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 𝗗𝗫𝗔 𝗡𝗨𝗠𝗕𝗘𝗥 𝗕𝗢𝗧 ${e("🔥", PREMIUM_EMOJIS.FIRE)} 》═\n` +
         `━━━━━━━━━━━\n` +
@@ -198,10 +214,11 @@ async function showForceJoinMsg(chatId: number) {
         `${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>𝗗𝗫𝗔 𝗨𝗡𝗜𝗩𝗘𝗥𝗦𝗘</b>\n` +
         `━━━━━━━━━━━`;
 
-    await bot.sendMessage(msg.chat.id, welcomeText, {
+    const sent = await bot.sendMessage(msg.chat.id, welcomeText, {
         parse_mode: 'HTML',
         reply_markup: getMainButtons(userId)
     });
+    lastMenus.set(userId, sent.message_id);
 });
 
 const lastMenus = new Map<number, number>();
@@ -401,15 +418,26 @@ bot.on('message', async (msg) => {
         } else if (state === "admin_broadcast") {
             const users = readJson("users.json");
             let count = 0;
-            const statusMsg = await bot.sendMessage(chatId, `${e("📢", PREMIUM_EMOJIS.BROADCAST)} Broadcasting...`, { parse_mode: 'HTML' });
+            const statusMsg = await bot.sendMessage(chatId, `${e("⏳", PREMIUM_EMOJIS.WAIT)} <b>Broadcasting...</b>\nProgress: 0/${users.length}`, { parse_mode: 'HTML' });
             
-            for (const u of users) {
+            for (let i = 0; i < users.length; i++) {
+                const u = users[i];
                 try {
                     await bot.copyMessage(u.uid, chatId, msg.message_id);
                     count++;
-                } catch {}
+                } catch (e) {}
+                
+                // Update progress every 10 users to avoid rate limiting
+                if ((i + 1) % 10 === 0 || i === users.length - 1) {
+                    await bot.editMessageText(`${e("⏳", PREMIUM_EMOJIS.WAIT)} <b>Broadcasting...</b>\nProgress: ${i + 1}/${users.length}\nSuccessful: ${count}`, {
+                        chat_id: chatId,
+                        message_id: statusMsg.message_id,
+                        parse_mode: 'HTML'
+                    }).catch(() => {});
+                }
             }
-            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} Broadcast complete! Sent to ${count} users.`, {
+            
+            await bot.editMessageText(`${e("✅", PREMIUM_EMOJIS.DONE)} <b>Broadcast complete!</b>\n━━━━━━━━━━━━━\nSent to: ${count} users.\nFailed: ${users.length - count}`, {
                 chat_id: chatId,
                 message_id: statusMsg.message_id,
                 parse_mode: 'HTML'
@@ -816,8 +844,8 @@ bot.on('callback_query', async (query) => {
             `━━━━━━━━━━━\n` +
             `《 ${e("✅", PREMIUM_EMOJIS.DONE)} 𝗡𝗨𝗠𝗕𝗘𝗥𝗦 𝗔𝗟𝗟𝗢𝗖𝗔𝗧𝗘𝗗 》\n` +
             `━━━━━━━━━━━\n` +
-            `${e("🔹", PREMIUM_EMOJIS.DOT)} <b>𝗦𝗲𝗿𝘃𝗶𝗰𝗲</b> ${serviceIcon} <b>${service}</b>\n` +
-            `${e("📍", PREMIUM_EMOJIS.PIN)} <b>𝗖𝗼𝘂𝗻𝘁𝗿𝘆</b> 🌐 <b>${country}</b>\n` +
+            `<blockquote>${e("🔹", PREMIUM_EMOJIS.DOT)} <b>𝗦𝗲𝗿𝘃𝗶𝗰𝗲</b> ${serviceIcon} <b>${service}</b></blockquote>\n` +
+            `<blockquote>${e("📍", PREMIUM_EMOJIS.PIN)} <b>𝗖𝗼𝘂𝗻𝘁𝗿𝘆</b> 🌐 <b>${country}</b></blockquote>\n` +
             `━━━━━━━━━━━\n` +
             formatted.join("\n") + "\n" +
             `━━━━━━━━━━━\n` +
@@ -930,6 +958,7 @@ bot.on('callback_query', async (query) => {
         }
         showGroupButtonsSettings(chatId, messageId, gid);
     } else if (data === "admin_settings") {
+        waitingForInput.delete(userId);
         showSettingsPanel(chatId, messageId);
     } else if (data === "toggle_force_join") {
         const settings = getSettings();
@@ -1027,6 +1056,7 @@ bot.on('callback_query', async (query) => {
         await bot.answerCallbackQuery(query.id, { text: "✅ File and numbers deleted!" });
         showAdminPanel(chatId, messageId);
     } else if (data === "admin_panel_back") {
+        waitingForInput.delete(userId);
         showAdminPanel(chatId, messageId);
     } else if (data === "view_used" || data === "view_unused") {
         const isUsed = data === "view_used";
@@ -1095,6 +1125,42 @@ const COUNTRY_FLAGS: { [key: string]: string } = {
     "venezuela": "🇻🇪"
 };
 
+function getServiceInfo(originalService: string, content: string) {
+    const text = content.toUpperCase();
+    let service = originalService;
+    
+    // Better detection for generic service names
+    const keywords = [
+        { key: 'INSTAGRAM', name: 'Instagram' },
+        { key: 'WHATSAPP', name: 'WhatsApp' },
+        { key: 'TELEGRAM', name: 'Telegram' },
+        { key: 'FACEBOOK', name: 'Facebook' },
+        { key: 'GOOGLE', name: 'Google' },
+        { key: 'TIKTOK', name: 'TikTok' },
+        { key: 'IMO', name: 'Imo' },
+        { key: 'BKASH', name: 'bKash' },
+        { key: 'NAGAD', name: 'Nagad' }
+    ];
+
+    for (const k of keywords) {
+        if (text.includes(k.key)) {
+            service = k.name;
+            break;
+        }
+    }
+
+    const serviceKey = service.toUpperCase().replace(/\s+/g, '');
+    let serviceIcon;
+    const premium = APP_EMOJIS[serviceKey];
+    if (premium) {
+        serviceIcon = e(premium[0], premium[1]);
+    } else {
+        serviceIcon = e("🖥", PREMIUM_EMOJIS.SUPPORT);
+    }
+    
+    return { service, serviceIcon };
+}
+
 async function fetchOtps() {
     try {
         const response = await fetch(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`);
@@ -1129,18 +1195,10 @@ async function fetchOtps() {
 
             // IMPROVED OTP EXTRACTION:
             const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
-            const code = otpMatch ? otpMatch[0] : "";
+            const code = otpMatch ? otpMatch[0] : content; // Use full content if no code found
 
-            if (code) {
-                // Get service specific premium emoji
-                const serviceKey = service.toString().toUpperCase().replace(/\s+/g, '');
-                let serviceIcon;
-                const premium = APP_EMOJIS[serviceKey];
-                if (premium) {
-                    serviceIcon = e(premium[0], premium[1]);
-                } else {
-                    serviceIcon = e("🖥", PREMIUM_EMOJIS.SUPPORT);
-                }
+            if (content) {
+                const { service: detectedService, serviceIcon } = getServiceInfo(service, content);
 
                 const brand = getBrand();
                 const mask = getMask();
@@ -1148,7 +1206,7 @@ async function fetchOtps() {
                     ? `${normalizedApiNum.slice(0, 3)}${mask}${normalizedApiNum.slice(-4)}`
                     : normalizedApiNum;
                 
-                const groupMsgBody = `${serviceIcon} <b>${service}</b>  <code>${maskedNum}</code>\n\n${e("😒", PREMIUM_EMOJIS.DXA)} 𝗣𝗢𝗪𝗘𝗥𝗘𝗗 𝗕𝗬 <b>${brand}</b>`;
+                const groupMsgBody = `${serviceIcon} ${detectedService} <code>${maskedNum}</code>`;
 
                 const getOtpMarkup = (specificButtons: any[] | null = null, otpCode: string) => {
                     const m_obj: any = {
@@ -1183,12 +1241,12 @@ async function fetchOtps() {
 
                 // 2. Check if number belongs to a user and send to them
                 const match = numbersData.find((n: any) => 
-                    normalizeNumber(n.number) === normalizedApiNum && n.status === "active"
+                    n.used && normalizeNumber(n.number) === normalizedApiNum
                 ) as any;
 
                 if (match && match.assignedTo) {
                     try {
-                        const msgBody = `${e("🚫", PREMIUM_EMOJIS.CLOSE)} <b>${service}</b>  <code>${normalizedApiNum}</code>`;
+                        const msgBody = `${serviceIcon} ${detectedService} <code>${normalizedApiNum}</code>`;
                         await bot.sendMessage(match.assignedTo, msgBody, { 
                             parse_mode: 'HTML', 
                             reply_markup: getOtpMarkup(null, code)
