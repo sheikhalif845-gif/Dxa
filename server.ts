@@ -74,6 +74,7 @@ const OTP_API_TOKEN = process.env.OTP_API_TOKEN || "R1dPQUFBUzSLhmRod3SLV0OYhHxK
 
 const cooldowns = new Map<number, number>();
 const processedMessages = new Set<string>();
+const lastNumberOtp = new Map<string, string>();
 
 function readJson(filename: string) {
     const filePath = path.join(DATA_DIR, filename);
@@ -1164,11 +1165,21 @@ function getServiceInfo(originalService: string, content: string) {
 async function fetchOtps() {
     try {
         const response = await fetch(`${OTP_API_URL}?token=${OTP_API_TOKEN}&records=50`);
+        const text = await response.text();
+
         if (!response.ok) {
-            console.error(`[OTP] API Error: ${response.status} ${response.statusText}`);
+            console.error(`[OTP] API Error (${response.status}): ${text.substring(0, 100)}`);
             return;
         }
-        const data = await response.json() as any[];
+
+        let data: any[];
+        try {
+            data = JSON.parse(text);
+        } catch (parseErr) {
+            console.error(`[OTP] JSON Parse Error: ${text.substring(0, 100)}...`);
+            return;
+        }
+
         if (!Array.isArray(data)) {
             console.error("[OTP] API returned non-array data type:", typeof data);
             return;
@@ -1182,20 +1193,31 @@ async function fetchOtps() {
             
             const [service, fullNumber, content, timestamp] = record;
             const msgId = `${fullNumber}_${timestamp}`;
+            const normalizedApiNum = normalizeNumber(fullNumber);
             
             if (processedMessages.has(msgId)) continue;
             
-            // Limit processedMessages set size to 10,000 to prevent memory leaks
+            // Extract OTP
+            const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
+            const code = otpMatch ? otpMatch[0] : content;
+
+            // DEDUPLICATION: Only send if OTP code is DIFFERENT for this number
+            const lastCode = lastNumberOtp.get(normalizedApiNum);
+            if (lastCode === code) {
+                processedMessages.add(msgId); // Mark as processed to skip future API returns
+                continue;
+            }
+
+            // Update safety trackers
             if (processedMessages.size > 10000) {
                 const firstElement = processedMessages.values().next().value;
                 processedMessages.delete(firstElement);
             }
-            
-            const normalizedApiNum = normalizeNumber(fullNumber);
-
-            // IMPROVED OTP EXTRACTION:
-            const otpMatch = content.match(/\d{3}[- ]\d{3}/) || content.match(/\d{4,8}/);
-            const code = otpMatch ? otpMatch[0] : content; // Use full content if no code found
+            lastNumberOtp.set(normalizedApiNum, code);
+            if (lastNumberOtp.size > 5000) {
+                const firstKey = lastNumberOtp.keys().next().value;
+                lastNumberOtp.delete(firstKey);
+            }
 
             if (content) {
                 const { service: detectedService, serviceIcon } = getServiceInfo(service, content);
